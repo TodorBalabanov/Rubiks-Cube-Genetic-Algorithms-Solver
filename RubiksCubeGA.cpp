@@ -224,12 +224,13 @@ public:
 				difference += abs(front[i][j]-cube.front[i][j]);
 				difference += abs(back[i][j]-cube.back[i][j]);
 				difference += abs(down[i][j]-cube.down[i][j]);
-			} 
+			}
 		}
 
 		return(difference);
 		/**/
 
+		//TODO Find better distance measure (for example Hausdorff distance).
 		/*
 		long ha = 0;
 		long hb = 0;
@@ -247,7 +248,7 @@ public:
 						distances[d++] = abs(front[m][n]-cube.front[i][j]);
 						distances[d++] = abs(back[m][n]-cube.back[i][j]);
 						distances[d++] = abs(down[m][n]-cube.down[i][j]);
-					} 
+					}
 				}
 
 				int min = distances[0];
@@ -275,7 +276,7 @@ public:
 						distances[d++] = abs(front[i][j]-cube.front[m][n]);
 						distances[d++] = abs(back[i][j]-cube.back[m][n]);
 						distances[d++] = abs(down[i][j]-cube.down[m][n]);
-					} 
+					}
 				}
 
 				int min = distances[0];
@@ -304,7 +305,7 @@ public:
 				direction = COUNTERCLOCKWISE;
 			} else if(direction == COUNTERCLOCKWISE) {
 				direction = CLOCKWISE;
-			} 
+			}
 		}
 
 		numberOfTimes %= 4;
@@ -342,12 +343,24 @@ public:
 
 		for(int i=0; i<numberOfMoves; i++) {
 			switch(rand()%6) {
-				case 0: commands+=(char)TOP; break;
-				case 1: commands+=(char)LEFT; break;
-				case 2: commands+=(char)RIGHT; break;
-				case 3: commands+=(char)FRONT; break;
-				case 4: commands+=(char)BACK; break;
-				case 5: commands+=(char)DOWN; break;
+			case 0:
+				commands+=(char)TOP;
+				break;
+			case 1:
+				commands+=(char)LEFT;
+				break;
+			case 2:
+				commands+=(char)RIGHT;
+				break;
+			case 3:
+				commands+=(char)FRONT;
+				break;
+			case 4:
+				commands+=(char)BACK;
+				break;
+			case 5:
+				commands+=(char)DOWN;
+				break;
 			}
 		}
 
@@ -447,7 +460,7 @@ public:
 			//fitness.push_back( GeneticAlgorithm::INVALID_FITNESS_VALUE );
 			fitness.push_back( -1 );
 			index = population.size() - 1;
-		}else if(index < population.size()) {
+		} else if(index < population.size()) {
 			population[index] = chromosome;
 		}
 
@@ -497,18 +510,18 @@ public:
 
 		static int percent = -1;
 		percent = rand()
-				% (CROSSOVER_RESULT_INTO_WORST_PERCENT
-						+ CROSSOVER_RESULT_INTO_MIDDLE_PERCENT
-						+ CROSSOVER_RESULT_INTO_BEST_PERCENT);
+				  % (CROSSOVER_RESULT_INTO_WORST_PERCENT
+					 + CROSSOVER_RESULT_INTO_MIDDLE_PERCENT
+					 + CROSSOVER_RESULT_INTO_BEST_PERCENT);
 
 		if (percent < CROSSOVER_RESULT_INTO_WORST_PERCENT) {
 			do {
 				selectRandom();
 			} while (fitness[resultIndex] < fitness[firstIndex]
-					|| fitness[resultIndex] < fitness[secondIndex]);
+					 || fitness[resultIndex] < fitness[secondIndex]);
 		} else if (percent
-				< (CROSSOVER_RESULT_INTO_WORST_PERCENT
-						+ CROSSOVER_RESULT_INTO_MIDDLE_PERCENT)) {
+				   < (CROSSOVER_RESULT_INTO_WORST_PERCENT
+					  + CROSSOVER_RESULT_INTO_MIDDLE_PERCENT)) {
 			if (fitness[secondIndex] < fitness[firstIndex]) {
 				int index = secondIndex;
 				secondIndex = firstIndex;
@@ -517,15 +530,15 @@ public:
 			do {
 				selectRandom();
 			} while (fitness[resultIndex] < fitness[firstIndex]
-					|| fitness[resultIndex] > fitness[secondIndex]);
+					 || fitness[resultIndex] > fitness[secondIndex]);
 		} else if (percent
-				< (CROSSOVER_RESULT_INTO_WORST_PERCENT
-						+ CROSSOVER_RESULT_INTO_MIDDLE_PERCENT
-						+ CROSSOVER_RESULT_INTO_BEST_PERCENT)) {
+				   < (CROSSOVER_RESULT_INTO_WORST_PERCENT
+					  + CROSSOVER_RESULT_INTO_MIDDLE_PERCENT
+					  + CROSSOVER_RESULT_INTO_BEST_PERCENT)) {
 			do {
 				selectRandom();
 			} while (fitness[resultIndex] > fitness[firstIndex]
-					|| fitness[resultIndex] > fitness[secondIndex]);
+					 || fitness[resultIndex] > fitness[secondIndex]);
 		}
 
 		if (resultIndex == bestIndex && KEEP_ELITE==true) {
@@ -543,12 +556,24 @@ public:
 		int index = rand() % population[resultIndex].length();
 
 		switch(rand()%6) {
-			case 0: population[resultIndex][index]=(char)TOP; break;
-			case 1: population[resultIndex][index]=(char)LEFT; break;
-			case 2: population[resultIndex][index]=(char)RIGHT; break;
-			case 3: population[resultIndex][index]=(char)FRONT; break;
-			case 4: population[resultIndex][index]=(char)BACK; break;
-			case 5: population[resultIndex][index]=(char)DOWN; break;
+		case 0:
+			population[resultIndex][index]=(char)TOP;
+			break;
+		case 1:
+			population[resultIndex][index]=(char)LEFT;
+			break;
+		case 2:
+			population[resultIndex][index]=(char)RIGHT;
+			break;
+		case 3:
+			population[resultIndex][index]=(char)FRONT;
+			break;
+		case 4:
+			population[resultIndex][index]=(char)BACK;
+			break;
+		case 5:
+			population[resultIndex][index]=(char)DOWN;
+			break;
 		}
 
 		fitness[resultIndex] = INVALID_FITNESS_VALUE;
