@@ -368,6 +368,48 @@ public:
 
 		return(commands);
 	}
+
+	std::string toString() {
+		std::string result = "";
+
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				result += std::to_string(top[i][j]) + " ";
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				result += std::to_string(left[i][j]) + " ";
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				result += std::to_string(right[i][j]) + " ";
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				result += std::to_string(front[i][j]) + " ";
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				result += std::to_string(back[i][j]) + " ";
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				result += std::to_string(down[i][j]) + " ";
+			}
+		}
+
+		result.erase(result.size()-1, 1);
+
+		return result;
+	}
+
+	void fromString(const char text[]) {
+	}
 };
 
 std::ostream& operator<< (std::ostream &out, const RubiksCube &cube) {
@@ -626,11 +668,12 @@ public:
 };
 
 int main(int argc, char **argv) {
-	int rank, size;
+	int rank, size, world;
 
 	MPI_Init (&argc, &argv);
-	MPI_Comm_rank (MPI_COMM_WORLD, &rank);
-	MPI_Comm_size (MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_size(MPI_COMM_WORLD, &world);
 
 	srand( time(NULL)^getpid() );
 
@@ -642,15 +685,17 @@ int main(int argc, char **argv) {
 		shuffled.shuffle(10000);
 		std::cout << "Sender difference: " << shuffled.compare(solved);
 		std::cout << std::endl;
-		for(int destination=1; destination<rank; destination++) {
-			//MPI_Send(&buffer,count, MPI_PACKED, destination, 0, MPI_COMM_WORLD);
+		for(int destination=1; destination<world; destination++) {
+			const std::string &value = shuffled.toString();
+			MPI_Send(value.c_str(), value.size(), MPI_BYTE, destination, 0, MPI_COMM_WORLD);
 		}
 	} else if(rank > 0) {
 		GeneticAlgorithm ga;
 		RubiksCube solved, shuffled;
-		shuffled.shuffle(3);
+		shuffled.shuffle(10);
+		std::cout << "Worker Before " << rank << " : " << shuffled.compare(solved) << std::endl;
 		GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, 100, 10000);
-		std::cout << "Worker " << rank << " : " << shuffled.compare(solved) << std::endl;
+		std::cout << "Worker After " << rank << " : " << shuffled.compare(solved) << std::endl;
 	}
 
 	MPI_Finalize();
