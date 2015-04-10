@@ -42,6 +42,8 @@ private:
 	int back[3][3];
 	int down[3][3];
 
+	std::string result;
+
 	void spinSide(RubiksSide side) {
 		static int buffer[ 3 ];
 
@@ -214,7 +216,6 @@ public:
 	}
 
 	long compare(const RubiksCube &cube) const {
-		/**/
 		long difference = 0;
 
 		for(int i=0; i<3; i++) {
@@ -229,74 +230,71 @@ public:
 		}
 
 		return(difference);
-		/**/
 
 		//TODO Find better distance measure (for example Hausdorff distance).
-		/*
-		long ha = 0;
-		long hb = 0;
-		long result = 0;
-
-		for(int m=0; m<3; m++) {
-			for(int n=0; n<3; n++) {
-				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-				for(int i=0, d=0; i<3; i++) {
-					for(int j=0; j<3; j++) {
-						distances[d++] = abs(top[m][n]-cube.top[i][j]);
-						distances[d++] = abs(left[m][n]-cube.left[i][j]);
-						distances[d++] = abs(right[m][n]-cube.right[i][j]);
-						distances[d++] = abs(front[m][n]-cube.front[i][j]);
-						distances[d++] = abs(back[m][n]-cube.back[i][j]);
-						distances[d++] = abs(down[m][n]-cube.down[i][j]);
-					}
-				}
-
-				int min = distances[0];
-				for(int d=0; d<54; d++) {
-					if(distances[d] < min) {
-						min = distances[d];
-					}
-				}
-
-				if(min > ha) {
-					ha = min;
-				}
-			}
-		}
-
-		for(int m=0; m<3; m++) {
-			for(int n=0; n<3; n++) {
-				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-				for(int i=0, d=0; i<3; i++) {
-					for(int j=0; j<3; j++) {
-						distances[d++] = abs(top[i][j]-cube.top[m][n]);
-						distances[d++] = abs(left[i][j]-cube.left[m][n]);
-						distances[d++] = abs(right[i][j]-cube.right[m][n]);
-						distances[d++] = abs(front[i][j]-cube.front[m][n]);
-						distances[d++] = abs(back[i][j]-cube.back[m][n]);
-						distances[d++] = abs(down[i][j]-cube.down[m][n]);
-					}
-				}
-
-				int min = distances[0];
-				for(int d=0; d<54; d++) {
-					if(distances[d] < min) {
-						min = distances[d];
-					}
-				}
-
-				if(min > hb) {
-					hb = min;
-				}
-			}
-		}
-
-		result = std::max(ha, hb);
-
-		return(result);
-		/**/
+//		long ha = 0;
+//		long hb = 0;
+//		long result = 0;
+//
+//		for(int m=0; m<3; m++) {
+//			for(int n=0; n<3; n++) {
+//				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//
+//				for(int i=0, d=0; i<3; i++) {
+//					for(int j=0; j<3; j++) {
+//						distances[d++] = abs(top[m][n]-cube.top[i][j]);
+//						distances[d++] = abs(left[m][n]-cube.left[i][j]);
+//						distances[d++] = abs(right[m][n]-cube.right[i][j]);
+//						distances[d++] = abs(front[m][n]-cube.front[i][j]);
+//						distances[d++] = abs(back[m][n]-cube.back[i][j]);
+//						distances[d++] = abs(down[m][n]-cube.down[i][j]);
+//					}
+//				}
+//
+//				int min = distances[0];
+//				for(int d=0; d<54; d++) {
+//					if(distances[d] < min) {
+//						min = distances[d];
+//					}
+//				}
+//
+//				if(min > ha) {
+//					ha = min;
+//				}
+//			}
+//		}
+//
+//		for(int m=0; m<3; m++) {
+//			for(int n=0; n<3; n++) {
+//				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//
+//				for(int i=0, d=0; i<3; i++) {
+//					for(int j=0; j<3; j++) {
+//						distances[d++] = abs(top[i][j]-cube.top[m][n]);
+//						distances[d++] = abs(left[i][j]-cube.left[m][n]);
+//						distances[d++] = abs(right[i][j]-cube.right[m][n]);
+//						distances[d++] = abs(front[i][j]-cube.front[m][n]);
+//						distances[d++] = abs(back[i][j]-cube.back[m][n]);
+//						distances[d++] = abs(down[i][j]-cube.down[m][n]);
+//					}
+//				}
+//
+//				int min = distances[0];
+//				for(int d=0; d<54; d++) {
+//					if(distances[d] < min) {
+//						min = distances[d];
+//					}
+//				}
+//
+//				if(min > hb) {
+//					hb = min;
+//				}
+//			}
+//		}
+//
+//		result = std::max(ha, hb);
+//
+//		return(result);
 	}
 
 	void callSpin(RubiksSide side, RotationDirection direction, int numberOfTimes) {
@@ -370,8 +368,8 @@ public:
 		return(commands);
 	}
 
-	std::string toString() {
-		std::string result = "";
+	const std::string& toString() {
+		result = "";
 
 		for(int i=0; i<3; i++) {
 			for(int j=0; j<3; j++) {
@@ -404,6 +402,9 @@ public:
 			}
 		}
 
+		/*
+		 * Trim spaces.
+		 */
 		result.erase(result.size()-1, 1);
 
 		return result;
@@ -478,6 +479,8 @@ std::ostream& operator<< (std::ostream &out, const RubiksCube &cube) {
 		}
 		out << std::endl;
 	}
+
+	return out;
 }
 
 class GeneticAlgorithm {
@@ -489,6 +492,8 @@ private:
 	int secondIndex;
 	int bestIndex;
 	int worstIndex;
+
+	std::string result;
 
 	void selectRandom() {
 		do {
@@ -654,6 +659,51 @@ public:
 
 		fitness[resultIndex] = INVALID_FITNESS_VALUE;
 	}
+
+	const std::string& toString() {
+		result = "";
+
+		/*
+		 * Keep population size.
+		 */
+		result += std::to_string(population.size());
+		result += " ";
+
+		for(int i=0; i<population.size(); i++) {
+			result += std::to_string(fitness[i]);
+			result += " ";
+			result += population[i];
+			result += " ";
+		}
+
+		/*
+		 * Trim spaces.
+		 */
+		result.erase(result.size()-1, 1);
+
+		return result;
+	}
+
+	void fromString(const char text[]) {
+		std::string buffer(text);
+		std::istringstream in(buffer);
+
+		fitness.clear();
+		population.clear();
+
+		int size = 0;
+		in >> size;
+
+		int value;
+		std::string commands;
+		for(int i=0; i<size; i++) {
+			in >> value;
+			in >> commands;
+
+			fitness.push_back(value);
+			population.push_back(commands);
+		}
+	}
 };
 
 std::ostream& operator<< (std::ostream &out, const GeneticAlgorithm &ga) {
@@ -665,6 +715,8 @@ std::ostream& operator<< (std::ostream &out, const GeneticAlgorithm &ga) {
 		}
 		out << std::endl;
 	}
+
+	return out;
 }
 
 class GeneticAlgorithmOptimizer {
