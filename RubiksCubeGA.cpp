@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ostream>
+#include <sstream>
 #include <iostream>
 
 #include <mpi.h>
@@ -409,6 +410,39 @@ public:
 	}
 
 	void fromString(const char text[]) {
+		std::string buffer(text);
+		std::istringstream in(buffer);
+
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				in >> top[i][j];
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				in >> left[i][j];
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				in >> right[i][j];
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				in >> front[i][j];
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				in >> back[i][j];
+			}
+		}
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				in >> down[i][j];
+			}
+		}
 	}
 };
 
@@ -677,11 +711,13 @@ int main(int argc, char **argv) {
 
 	srand( time(NULL)^getpid() );
 
+	RubiksCube solved;
+
 	/*
 	 * Firs process will distribute the working tasks.
 	 */
 	if(rank == 0) {
-		RubiksCube solved, shuffled;
+		RubiksCube shuffled;
 		shuffled.shuffle(10000);
 		std::cout << "Sender difference: " << shuffled.compare(solved);
 		std::cout << std::endl;
@@ -690,9 +726,11 @@ int main(int argc, char **argv) {
 			MPI_Send(value.c_str(), value.size(), MPI_BYTE, destination, 0, MPI_COMM_WORLD);
 		}
 	} else if(rank > 0) {
+		char buffer[1000];
 		GeneticAlgorithm ga;
-		RubiksCube solved, shuffled;
-		shuffled.shuffle(10);
+		RubiksCube shuffled;
+		MPI_Recv(buffer, 1000, MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		shuffled.fromString(buffer);
 		std::cout << "Worker Before " << rank << " : " << shuffled.compare(solved) << std::endl;
 		GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, 100, 10000);
 		std::cout << "Worker After " << rank << " : " << shuffled.compare(solved) << std::endl;
