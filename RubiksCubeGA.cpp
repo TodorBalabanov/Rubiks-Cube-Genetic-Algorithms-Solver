@@ -10,6 +10,18 @@
 #include <mpi.h>
 #include <unistd.h>
 
+#define ROOT_NODE 0
+#define DEFAULT_TAG 0
+
+#define RECEIVE_BUFFER_SIZE 10000
+
+#define LOCAL_POPULATION_SIZE 37
+#define LOCAL_OPTIMIZATION_EPOCHES 1000
+
+#define CUBE_SHUFFLING_STEPS 1000
+
+#define OPTIMIZATION_TIME_MILLISECONDS 600000L
+
 enum RubiksColor {
 	GREEN = 1,
 	PURPLE = 2,
@@ -754,38 +766,61 @@ public:
 };
 
 int main(int argc, char **argv) {
-	int rank, size, world;
+	int rank, size;
 
 	MPI_Init (&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	MPI_Comm_size(MPI_COMM_WORLD, &world);
 
 	srand( time(NULL)^getpid() );
 
 	RubiksCube solved;
+	RubiksCube shuffled;
+
+	/*
+	 * Receive buffer.
+	 */
+	char buffer[RECEIVE_BUFFER_SIZE];
 
 	/*
 	 * Firs process will distribute the working tasks.
 	 */
-	if(rank == 0) {
-		RubiksCube shuffled;
-		shuffled.shuffle(10000);
+	if(rank == ROOT_NODE) {
+		shuffled.shuffle(CUBE_SHUFFLING_STEPS);
 		std::cout << "Sender difference: " << shuffled.compare(solved);
 		std::cout << std::endl;
-		for(int destination=1; destination<world; destination++) {
-			const std::string &value = shuffled.toString();
-			MPI_Send(value.c_str(), value.size(), MPI_BYTE, destination, 0, MPI_COMM_WORLD);
+		const std::string &value = shuffled.toString();
+
+		for(int r=0; r<size; r++) {
+			/*
+			 * Root node is not included.
+			 */
+			if(r == ROOT_NODE) {
+				continue;
+			}
+
+			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
 		}
-	} else if(rank > 0) {
-		char buffer[1000];
+
+		for(int r=0; r<size; r++) {
+			/*
+			 * Root node is not included.
+			 */
+			if(r == ROOT_NODE) {
+				continue;
+			}
+
+			MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			std::cout << "Worker After " << r << " : " << buffer << std::endl;
+		}
+	} else if(rank != ROOT_NODE) {
 		GeneticAlgorithm ga;
-		RubiksCube shuffled;
-		MPI_Recv(buffer, 1000, MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		shuffled.fromString(buffer);
 		std::cout << "Worker Before " << rank << " : " << shuffled.compare(solved) << std::endl;
-		GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, 100, 10000);
-		std::cout << "Worker After " << rank << " : " << shuffled.compare(solved) << std::endl;
+		GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_POPULATION_SIZE, LOCAL_OPTIMIZATION_EPOCHES);
+		std::string result = std::to_string(shuffled.compare(solved));
+		MPI_Send(result.c_str(), result.size(), MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD);
 	}
 
 	MPI_Finalize();
