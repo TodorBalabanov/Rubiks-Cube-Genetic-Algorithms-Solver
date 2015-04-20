@@ -13,12 +13,14 @@
 #define ROOT_NODE 0
 #define DEFAULT_TAG 0
 
-#define RECEIVE_BUFFER_SIZE 10000
+#define RECEIVE_BUFFER_SIZE 100000
 
 #define LOCAL_POPULATION_SIZE 37
 #define LOCAL_OPTIMIZATION_EPOCHES 1000
 
-#define CUBE_SHUFFLING_STEPS 1000
+#define CHROMOZOMES_INITIAL_SIZE 1
+
+#define CUBE_SHUFFLING_STEPS 10
 
 #define OPTIMIZATION_TIME_MILLISECONDS 600000L
 
@@ -53,6 +55,8 @@ private:
 	int front[3][3];
 	int back[3][3];
 	int down[3][3];
+
+	int (*sides[6])[3][3];
 
 	std::string result;
 
@@ -207,11 +211,141 @@ private:
 		memcpy(side, buffer, sizeof(int)*3*3);
 	}
 
+	double euclidean(const RubiksCube &cube) const {
+		double difference = 0.0;
+
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				difference += abs(top[i][j]-cube.top[i][j]);
+				difference += abs(left[i][j]-cube.left[i][j]);
+				difference += abs(right[i][j]-cube.right[i][j]);
+				difference += abs(front[i][j]-cube.front[i][j]);
+				difference += abs(back[i][j]-cube.back[i][j]);
+				difference += abs(down[i][j]-cube.down[i][j]);
+			}
+		}
+
+		return difference;
+	}
+
+	double centers(const RubiksCube &cube) const {
+		//TODO Change array with STL maps.
+		static const double corrections[7][7] = {
+			{0, 0, 0, 0, 0, 0, 0},
+			{0, 1, 4, 4, 4, 4, 8},
+			{0, 4, 1, 4, 8, 4, 4},
+			{0, 4, 4, 1, 4, 8, 4},
+			{0, 4, 8, 4, 1, 4, 4},
+			{0, 4, 4, 8, 4, 1, 4},
+			{0, 8, 4, 4, 4, 4, 1},
+		};
+
+		double difference = 0.0;
+
+		/*
+		 * Side a is compared with side b.
+		 */
+		for(int a=0; a<6; a++) {
+			for(int b=0; b<6; b++) {
+				for(int i=0; i<3; i++) {
+					for(int j=0; j<3; j++) {
+						/*
+						 * Do nothinkg if the cell is not with the color of the center of side a.
+						 */
+						if(*sides[a][1][1] != *sides[b][i][j]) {
+							continue;
+						}
+
+						/*
+						 * If colors are equal calculate distance.
+						 */
+						difference += /*sqrt*/((i-1)*(i-1)+(j-1)*(j-1)) * corrections[*sides[a][1][1]][*sides[b][1][1]];
+					}
+				}
+			}
+		}
+
+		return difference;
+	}
+
+	double hausdorff(const RubiksCube &cube) const {
+		long ha = 0;
+		long hb = 0;
+		long result = 0;
+
+		for(int m=0; m<3; m++) {
+			for(int n=0; n<3; n++) {
+				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+				for(int i=0, d=0; i<3; i++) {
+					for(int j=0; j<3; j++) {
+						distances[d++] = abs(top[m][n]-cube.top[i][j]);
+						distances[d++] = abs(left[m][n]-cube.left[i][j]);
+						distances[d++] = abs(right[m][n]-cube.right[i][j]);
+						distances[d++] = abs(front[m][n]-cube.front[i][j]);
+						distances[d++] = abs(back[m][n]-cube.back[i][j]);
+						distances[d++] = abs(down[m][n]-cube.down[i][j]);
+					}
+				}
+
+				int min = distances[0];
+				for(int d=0; d<54; d++) {
+					if(distances[d] < min) {
+						min = distances[d];
+					}
+				}
+
+				if(min > ha) {
+					ha = min;
+				}
+			}
+		}
+
+		for(int m=0; m<3; m++) {
+			for(int n=0; n<3; n++) {
+				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+				for(int i=0, d=0; i<3; i++) {
+					for(int j=0; j<3; j++) {
+						distances[d++] = abs(top[i][j]-cube.top[m][n]);
+						distances[d++] = abs(left[i][j]-cube.left[m][n]);
+						distances[d++] = abs(right[i][j]-cube.right[m][n]);
+						distances[d++] = abs(front[i][j]-cube.front[m][n]);
+						distances[d++] = abs(back[i][j]-cube.back[m][n]);
+						distances[d++] = abs(down[i][j]-cube.down[m][n]);
+					}
+				}
+
+				int min = distances[0];
+				for(int d=0; d<54; d++) {
+					if(distances[d] < min) {
+						min = distances[d];
+					}
+				}
+
+				if(min > hb) {
+					hb = min;
+				}
+			}
+		}
+
+		result = std::max(ha, hb);
+
+		return(result);
+	}
+
 	friend std::ostream& operator<< (std::ostream &out, const RubiksCube &cube);
 
 public:
 	RubiksCube() {
 		reset();
+
+		sides[0] = &top;
+		sides[1] = &left;
+		sides[2] = &right;
+		sides[3] = &front;
+		sides[4] = &back;
+		sides[5] = &down;
 	}
 
 	void reset() {
@@ -227,86 +361,8 @@ public:
 		}
 	}
 
-	long compare(const RubiksCube &cube) const {
-		long difference = 0;
-
-		for(int i=0; i<3; i++) {
-			for(int j=0; j<3; j++) {
-				difference += abs(top[i][j]-cube.top[i][j]);
-				difference += abs(left[i][j]-cube.left[i][j]);
-				difference += abs(right[i][j]-cube.right[i][j]);
-				difference += abs(front[i][j]-cube.front[i][j]);
-				difference += abs(back[i][j]-cube.back[i][j]);
-				difference += abs(down[i][j]-cube.down[i][j]);
-			}
-		}
-
-		return(difference);
-
-		//TODO Find better distance measure (for example Hausdorff distance).
-//		long ha = 0;
-//		long hb = 0;
-//		long result = 0;
-//
-//		for(int m=0; m<3; m++) {
-//			for(int n=0; n<3; n++) {
-//				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-//
-//				for(int i=0, d=0; i<3; i++) {
-//					for(int j=0; j<3; j++) {
-//						distances[d++] = abs(top[m][n]-cube.top[i][j]);
-//						distances[d++] = abs(left[m][n]-cube.left[i][j]);
-//						distances[d++] = abs(right[m][n]-cube.right[i][j]);
-//						distances[d++] = abs(front[m][n]-cube.front[i][j]);
-//						distances[d++] = abs(back[m][n]-cube.back[i][j]);
-//						distances[d++] = abs(down[m][n]-cube.down[i][j]);
-//					}
-//				}
-//
-//				int min = distances[0];
-//				for(int d=0; d<54; d++) {
-//					if(distances[d] < min) {
-//						min = distances[d];
-//					}
-//				}
-//
-//				if(min > ha) {
-//					ha = min;
-//				}
-//			}
-//		}
-//
-//		for(int m=0; m<3; m++) {
-//			for(int n=0; n<3; n++) {
-//				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-//
-//				for(int i=0, d=0; i<3; i++) {
-//					for(int j=0; j<3; j++) {
-//						distances[d++] = abs(top[i][j]-cube.top[m][n]);
-//						distances[d++] = abs(left[i][j]-cube.left[m][n]);
-//						distances[d++] = abs(right[i][j]-cube.right[m][n]);
-//						distances[d++] = abs(front[i][j]-cube.front[m][n]);
-//						distances[d++] = abs(back[i][j]-cube.back[m][n]);
-//						distances[d++] = abs(down[i][j]-cube.down[m][n]);
-//					}
-//				}
-//
-//				int min = distances[0];
-//				for(int d=0; d<54; d++) {
-//					if(distances[d] < min) {
-//						min = distances[d];
-//					}
-//				}
-//
-//				if(min > hb) {
-//					hb = min;
-//				}
-//			}
-//		}
-//
-//		result = std::max(ha, hb);
-//
-//		return(result);
+	double compare(const RubiksCube &cube) const {
+		return euclidean(cube);
 	}
 
 	void callSpin(RubiksSide side, RotationDirection direction, int numberOfTimes) {
@@ -498,7 +554,7 @@ std::ostream& operator<< (std::ostream &out, const RubiksCube &cube) {
 class GeneticAlgorithm {
 private:
 	std::vector<std::string> population;
-	std::vector<int> fitness;
+	std::vector<double> fitness;
 	int resultIndex;
 	int firstIndex;
 	int secondIndex;
@@ -570,7 +626,7 @@ public:
 		return( population[index] );
 	}
 
-	void setFitness(int fitness, int index) {
+	void setFitness(double fitness, int index) {
 		if(population.size() <= index || index <= -1) {
 			return;
 		}
@@ -584,7 +640,7 @@ public:
 		}
 	}
 
-	int getFitness(int index) {
+	double getFitness(int index) {
 		if(population.size() <= index || index <= -1) {
 			return( INVALID_FITNESS_VALUE );
 		}
@@ -733,7 +789,7 @@ std::ostream& operator<< (std::ostream &out, const GeneticAlgorithm &ga) {
 
 class GeneticAlgorithmOptimizer {
 private:
-	static int evaluate(const RubiksCube &solved, const RubiksCube &shuffled, const std::string &commands) {
+	static double evaluate(const RubiksCube &solved, const RubiksCube &shuffled, const std::string &commands) {
 		static RubiksCube used;
 
 		used = shuffled;
@@ -746,10 +802,17 @@ private:
 
 public:
 	static void optimize(GeneticAlgorithm &ga, RubiksCube &solved, RubiksCube &shuffled, int populationSize=0, long epoches=0) {
+		/*
+		 * Fist chromosome is empty command for solved cubes.
+		 */
 		for(int p=0; p<populationSize; p++) {
-			RubiksCube mixed = solved;
-			mixed.shuffle(1000);
-			ga.setChromosome(mixed.shuffle(1000));
+			if(p == 0) {
+				ga.setChromosome("");
+			} else {
+				RubiksCube mixed = solved;
+				mixed.shuffle(CHROMOZOMES_INITIAL_SIZE);
+				ga.setChromosome(mixed.shuffle(CHROMOZOMES_INITIAL_SIZE));
+			}
 			ga.setFitness(evaluate(solved, shuffled, ga.getChromosome(p)), p);
 		}
 
@@ -765,63 +828,105 @@ public:
 	}
 };
 
-int main(int argc, char **argv) {
-	int rank, size;
+static int rank = -1;
+static int size = 0;
 
+/*
+ * Receive buffer.
+ */
+static char buffer[RECEIVE_BUFFER_SIZE];
+
+static RubiksCube solved;
+static RubiksCube shuffled;
+
+static GeneticAlgorithm ga;
+
+static void master() {
+	if(rank != ROOT_NODE) {
+		return;
+	}
+
+	std::cout << shuffled;
+	std::cout << std::endl;
+
+	shuffled.shuffle(CUBE_SHUFFLING_STEPS);
+	std::cout << "Sender Cube: ";
+	std::cout << std::endl;
+	std::cout << shuffled;
+	std::cout << std::endl;
+	std::cout << "Sender Difference: " << shuffled.compare(solved);
+	std::cout << std::endl;
+
+	const std::string &value = shuffled.toString();
+
+	/*
+	 * Send shffled cube to all other nodes.
+	 */
+	for(int r=0; r<size; r++) {
+		/*
+		 * Root node is not included.
+		 */
+		if(r == ROOT_NODE) {
+			continue;
+		}
+
+		MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
+	}
+
+	/*
+	 * Calculate as regular node.
+	 */
+	GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_POPULATION_SIZE, LOCAL_OPTIMIZATION_EPOCHES);
+	std::cout << "Sender Difference: " << shuffled.compare(solved);
+	std::cout << std::endl;
+
+	/*
+	 * Collect results from all other nodes.
+	 */
+	for(int r=0; r<size; r++) {
+		/*
+		 * Root node is not included.
+		 */
+		if(r == ROOT_NODE) {
+			continue;
+		}
+
+		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		std::cout << "Worker After " << r << " : " << buffer << std::endl;
+	}
+}
+
+static void slave() {
+	if(rank == ROOT_NODE) {
+		return;
+	}
+
+	MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	shuffled.fromString(buffer);
+	std::cout << "Worker Before " << rank << " : " << shuffled.compare(solved) << std::endl;
+
+	/*CHROMOZOMES_INITIAL_SIZE
+	 * Calculate as regular node.
+	 */
+	GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_POPULATION_SIZE, LOCAL_OPTIMIZATION_EPOCHES);
+
+	std::string result = std::to_string(shuffled.compare(solved));
+	MPI_Send(result.c_str(), result.size(), MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD);
+}
+
+int main(int argc, char **argv) {
 	MPI_Init (&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 
 	srand( time(NULL)^getpid() );
 
-	RubiksCube solved;
-	RubiksCube shuffled;
-
-	/*
-	 * Receive buffer.
-	 */
-	char buffer[RECEIVE_BUFFER_SIZE];
-
 	/*
 	 * Firs process will distribute the working tasks.
 	 */
-	if(rank == ROOT_NODE) {
-		shuffled.shuffle(CUBE_SHUFFLING_STEPS);
-		std::cout << "Sender difference: " << shuffled.compare(solved);
-		std::cout << std::endl;
-		const std::string &value = shuffled.toString();
+	master();
 
-		for(int r=0; r<size; r++) {
-			/*
-			 * Root node is not included.
-			 */
-			if(r == ROOT_NODE) {
-				continue;
-			}
-
-			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
-		}
-
-		for(int r=0; r<size; r++) {
-			/*
-			 * Root node is not included.
-			 */
-			if(r == ROOT_NODE) {
-				continue;
-			}
-
-			MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			std::cout << "Worker After " << r << " : " << buffer << std::endl;
-		}
-	} else if(rank != ROOT_NODE) {
-		GeneticAlgorithm ga;
-		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		shuffled.fromString(buffer);
-		std::cout << "Worker Before " << rank << " : " << shuffled.compare(solved) << std::endl;
-		GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_POPULATION_SIZE, LOCAL_OPTIMIZATION_EPOCHES);
-		std::string result = std::to_string(shuffled.compare(solved));
-		MPI_Send(result.c_str(), result.size(), MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD);
-	}
+	slave();
 
 	MPI_Finalize();
 
