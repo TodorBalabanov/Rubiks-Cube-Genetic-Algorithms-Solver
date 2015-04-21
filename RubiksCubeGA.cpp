@@ -20,11 +20,12 @@
 
 #define CHROMOZOMES_INITIAL_SIZE 1
 
-#define CUBE_SHUFFLING_STEPS 10
+#define CUBE_SHUFFLING_STEPS 0
 
 #define OPTIMIZATION_TIME_MILLISECONDS 600000L
 
 enum RubiksColor {
+	BLANK = 0,
 	GREEN = 1,
 	PURPLE = 2,
 	YELLOW = 3,
@@ -228,39 +229,30 @@ private:
 		return difference;
 	}
 
-	double centers(const RubiksCube &cube) const {
+	double colors(const RubiksCube &cube) const {
 		//TODO Change array with STL maps.
-		static const double corrections[7][7] = {
+		static const double coefficients[7][7] = {
 			{0, 0, 0, 0, 0, 0, 0},
-			{0, 1, 4, 4, 4, 4, 8},
-			{0, 4, 1, 4, 8, 4, 4},
-			{0, 4, 4, 1, 4, 8, 4},
-			{0, 4, 8, 4, 1, 4, 4},
-			{0, 4, 4, 8, 4, 1, 4},
-			{0, 8, 4, 4, 4, 4, 1},
+			{0, 1, 2, 2, 2, 2, 4},
+			{0, 2, 1, 2, 4, 2, 2},
+			{0, 2, 2, 1, 2, 4, 2},
+			{0, 2, 4, 2, 1, 2, 2},
+			{0, 2, 2, 4, 2, 1, 2},
+			{0, 4, 2, 2, 2, 2, 1},
 		};
 
 		double difference = 0.0;
 
 		/*
-		 * Side a is compared with side b.
+		 * Count matches for all sides.
 		 */
-		for(int a=0; a<6; a++) {
-			for(int b=0; b<6; b++) {
-				for(int i=0; i<3; i++) {
-					for(int j=0; j<3; j++) {
-						/*
-						 * Do nothinkg if the cell is not with the color of the center of side a.
-						 */
-						if(*sides[a][1][1] != *sides[b][i][j]) {
-							continue;
-						}
-
-						/*
-						 * If colors are equal calculate distance.
-						 */
-						difference += /*sqrt*/((i-1)*(i-1)+(j-1)*(j-1)) * corrections[*sides[a][1][1]][*sides[b][1][1]];
-					}
+		for(int s=0; s<6; s++) {
+			for(int i=0; i<3; i++) {
+				for(int j=0; j<3; j++) {
+					/*
+					 * If colors are equal calculate distance.
+					 */
+					difference += coefficients[(*sides[s])[1][1]][(*sides[s])[i][j]];
 				}
 			}
 		}
@@ -362,7 +354,7 @@ public:
 	}
 
 	double compare(const RubiksCube &cube) const {
-		return euclidean(cube);
+		return colors(cube);
 	}
 
 	void callSpin(RubiksSide side, RotationDirection direction, int numberOfTimes) {
@@ -406,7 +398,7 @@ public:
 	}
 
 	std::string shuffle(int numberOfMoves=0) {
-		std::string commands;
+		std::string commands = "";
 
 		for(int i=0; i<numberOfMoves; i++) {
 			switch(rand()%6) {
@@ -433,7 +425,7 @@ public:
 
 		execute(commands);
 
-		return(commands);
+		return commands;
 	}
 
 	const std::string& toString() {
@@ -574,7 +566,7 @@ private:
 	friend std::ostream& operator<< (std::ostream &out, const GeneticAlgorithm &ga);
 
 public:
-	static const int INVALID_FITNESS_VALUE = -1;
+	static const int INVALID_FITNESS_VALUE = INT_MAX;
 	static const bool KEEP_ELITE = true;
 
 public:
@@ -606,8 +598,7 @@ public:
 
 		if(index == -1) {
 			population.push_back( chromosome );
-			//fitness.push_back( GeneticAlgorithm::INVALID_FITNESS_VALUE );
-			fitness.push_back( -1 );
+			fitness.push_back( GeneticAlgorithm::INVALID_FITNESS_VALUE );
 			index = population.size() - 1;
 		} else if(index < population.size()) {
 			population[index] = chromosome;
@@ -626,8 +617,12 @@ public:
 		return( population[index] );
 	}
 
-	void setFitness(double fitness, int index) {
-		if(population.size() <= index || index <= -1) {
+	void setFitness(double fitness, int index=-1) {
+		if(index == -1) {
+			index = this->fitness.size()-1;
+		}
+
+		if(this->fitness.size() <= index) {
 			return;
 		}
 
@@ -801,21 +796,21 @@ private:
 	}
 
 public:
-	static void optimize(GeneticAlgorithm &ga, RubiksCube &solved, RubiksCube &shuffled, int populationSize=0, long epoches=0) {
-		/*
-		 * Fist chromosome is empty command for solved cubes.
-		 */
+	static void addRandomCommands(GeneticAlgorithm &ga, const RubiksCube &solved, const RubiksCube &shuffled, int populationSize=0) {
 		for(int p=0; p<populationSize; p++) {
-			if(p == 0) {
-				ga.setChromosome("");
-			} else {
-				RubiksCube mixed = solved;
-				mixed.shuffle(CHROMOZOMES_INITIAL_SIZE);
-				ga.setChromosome(mixed.shuffle(CHROMOZOMES_INITIAL_SIZE));
-			}
-			ga.setFitness(evaluate(solved, shuffled, ga.getChromosome(p)), p);
+			RubiksCube mixed;
+			std::string commands = mixed.shuffle(CHROMOZOMES_INITIAL_SIZE);
+			ga.setChromosome( commands );
+			ga.setFitness(evaluate(solved, shuffled, commands));
 		}
+	}
 
+	static void addEmptyCommand(GeneticAlgorithm &ga, const RubiksCube &solved, const RubiksCube &shuffled) {
+		ga.setChromosome("");
+		ga.setFitness(evaluate(solved, shuffled, ""));
+	}
+
+	static void optimize(GeneticAlgorithm &ga, RubiksCube &solved, RubiksCube &shuffled, long epoches=0) {
 		for(long e=0L; e<epoches*ga.size(); e++) {
 			ga.selection();
 			ga.crossover();
@@ -876,7 +871,9 @@ static void master() {
 	/*
 	 * Calculate as regular node.
 	 */
-	GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_POPULATION_SIZE, LOCAL_OPTIMIZATION_EPOCHES);
+	GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
+	GeneticAlgorithmOptimizer::addRandomCommands(ga, solved, shuffled, LOCAL_POPULATION_SIZE);
+	GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_OPTIMIZATION_EPOCHES);
 	std::cout << "Sender Difference: " << shuffled.compare(solved);
 	std::cout << std::endl;
 
@@ -905,10 +902,12 @@ static void slave() {
 	shuffled.fromString(buffer);
 	std::cout << "Worker Before " << rank << " : " << shuffled.compare(solved) << std::endl;
 
-	/*CHROMOZOMES_INITIAL_SIZE
+	/*
 	 * Calculate as regular node.
 	 */
-	GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_POPULATION_SIZE, LOCAL_OPTIMIZATION_EPOCHES);
+	GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
+	GeneticAlgorithmOptimizer::addRandomCommands(ga, solved, shuffled, LOCAL_POPULATION_SIZE);
+	GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_OPTIMIZATION_EPOCHES);
 
 	std::string result = std::to_string(shuffled.compare(solved));
 	MPI_Send(result.c_str(), result.size(), MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD);
