@@ -18,7 +18,7 @@
 #define LOCAL_POPULATION_SIZE 37
 #define LOCAL_OPTIMIZATION_EPOCHES 1000
 
-#define CHROMOZOMES_INITIAL_SIZE 1
+#define CHROMOZOMES_INITIAL_SIZE 7
 
 #define CUBE_SHUFFLING_STEPS 0
 
@@ -666,11 +666,6 @@ public:
 		} else if (percent
 				   < (CROSSOVER_RESULT_INTO_WORST_PERCENT
 					  + CROSSOVER_RESULT_INTO_MIDDLE_PERCENT)) {
-			if (fitness[secondIndex] < fitness[firstIndex]) {
-				int index = secondIndex;
-				secondIndex = firstIndex;
-				firstIndex = index;
-			}
 			do {
 				selectRandom();
 			} while (fitness[resultIndex] < fitness[firstIndex]
