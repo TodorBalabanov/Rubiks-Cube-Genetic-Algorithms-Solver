@@ -1,0 +1,71 @@
+#include <iostream>
+
+using namespace std;
+
+#define KEEP_ELITE true
+
+	int resultIndex = 0;
+	int firstIndex = 0;
+	int secondIndex = 0;
+	int bestIndex = 0;
+	int worstIndex = 0;
+
+    int fitness[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+    unsigned long counters[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+	void selectRandom() {
+		do {
+			resultIndex = rand() % 10;
+			firstIndex = rand() % 10;
+			secondIndex = rand() % 10;
+		} while(resultIndex==firstIndex || resultIndex==secondIndex || (resultIndex == bestIndex && KEEP_ELITE==true));
+	}
+
+	void selection() {
+		static const int CROSSOVER_RESULT_INTO_BEST_PERCENT = 1;
+		static const int CROSSOVER_RESULT_INTO_MIDDLE_PERCENT = 9;
+		static const int CROSSOVER_RESULT_INTO_WORST_PERCENT = 90;
+
+		static int percent = -1;
+		percent = rand()
+				  % (CROSSOVER_RESULT_INTO_WORST_PERCENT
+					 + CROSSOVER_RESULT_INTO_MIDDLE_PERCENT
+					 + CROSSOVER_RESULT_INTO_BEST_PERCENT);
+
+		if (percent < CROSSOVER_RESULT_INTO_WORST_PERCENT) {
+			do {
+				selectRandom();
+			} while (fitness[resultIndex] < fitness[firstIndex]
+					 || fitness[resultIndex] < fitness[secondIndex]);
+		} else if (percent
+				   < (CROSSOVER_RESULT_INTO_WORST_PERCENT
+					  + CROSSOVER_RESULT_INTO_MIDDLE_PERCENT)) {
+			do {
+				selectRandom();
+			} while (fitness[resultIndex] < fitness[firstIndex]
+					 || fitness[resultIndex] > fitness[secondIndex]);
+		} else if (percent
+				   < (CROSSOVER_RESULT_INTO_WORST_PERCENT
+					  + CROSSOVER_RESULT_INTO_MIDDLE_PERCENT
+					  + CROSSOVER_RESULT_INTO_BEST_PERCENT)) {
+			do {
+				selectRandom();
+			} while (fitness[resultIndex] > fitness[firstIndex]
+					 || fitness[resultIndex] > fitness[secondIndex]);
+		}
+	}
+
+int main() {
+    unsigned long E = 10000000;
+    for(unsigned long e=0; e<E; e++){
+        selection();
+        counters[resultIndex]++;
+    }
+
+    for(int i=0; i<10; i++){
+        cout << counters[i] << "\t" << 100*counters[i]/E << endl;
+    }
+
+	return 0;
+}

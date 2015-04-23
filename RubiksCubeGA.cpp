@@ -16,11 +16,11 @@
 #define RECEIVE_BUFFER_SIZE 100000
 
 #define LOCAL_POPULATION_SIZE 37
-#define LOCAL_OPTIMIZATION_EPOCHES 1000
+#define LOCAL_OPTIMIZATION_EPOCHES 10000
 
-#define CHROMOZOMES_INITIAL_SIZE 7
+#define CHROMOZOMES_INITIAL_SIZE 10
 
-#define CUBE_SHUFFLING_STEPS 0
+#define CUBE_SHUFFLING_STEPS 1000
 
 #define OPTIMIZATION_TIME_MILLISECONDS 600000L
 
@@ -354,7 +354,7 @@ public:
 	}
 
 	double compare(const RubiksCube &cube) const {
-		return colors(cube);
+		return euclidean(cube);
 	}
 
 	void callSpin(RubiksSide side, RotationDirection direction, int numberOfTimes) {
@@ -560,7 +560,7 @@ private:
 			resultIndex = rand() % population.size();
 			firstIndex = rand() % population.size();
 			secondIndex = rand() % population.size();
-		} while(resultIndex==firstIndex || resultIndex==secondIndex || population[firstIndex].length()==0 || population[secondIndex].length()==0);
+		} while(resultIndex==firstIndex || resultIndex==secondIndex || (resultIndex == bestIndex && KEEP_ELITE==true) || population[firstIndex].length()==0 || population[secondIndex].length()==0);
 	}
 
 	friend std::ostream& operator<< (std::ostream &out, const GeneticAlgorithm &ga);
@@ -678,10 +678,6 @@ public:
 				selectRandom();
 			} while (fitness[resultIndex] > fitness[firstIndex]
 					 || fitness[resultIndex] > fitness[secondIndex]);
-		}
-
-		if (resultIndex == bestIndex && KEEP_ELITE==true) {
-			resultIndex = worstIndex;
 		}
 	}
 
@@ -835,9 +831,6 @@ static void master() {
 	if(rank != ROOT_NODE) {
 		return;
 	}
-
-	std::cout << shuffled;
-	std::cout << std::endl;
 
 	shuffled.shuffle(CUBE_SHUFFLING_STEPS);
 	std::cout << "Sender Cube: ";
