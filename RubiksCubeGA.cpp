@@ -18,9 +18,11 @@
 #define LOCAL_POPULATION_SIZE 37
 #define LOCAL_OPTIMIZATION_EPOCHES 10000
 
-#define CHROMOZOMES_INITIAL_SIZE 10
+#define CHROMOSOMES_INITIAL_SIZE 1
 
-#define CUBE_SHUFFLING_STEPS 1000
+#define CUBE_SHUFFLING_STEPS 7
+
+#define NUMBER_OF_BROADCASTS 1
 
 #define OPTIMIZATION_TIME_MILLISECONDS 600000L
 
@@ -466,6 +468,7 @@ public:
 		 * Trim spaces.
 		 */
 		result.erase(result.size()-1, 1);
+		result += '\0';
 
 		return result;
 	}
@@ -543,6 +546,12 @@ std::ostream& operator<< (std::ostream &out, const RubiksCube &cube) {
 	return out;
 }
 
+class Chromosome {
+public:
+	std::string command;
+	double fitness;
+};
+
 class GeneticAlgorithm {
 private:
 	std::vector<std::string> population;
@@ -598,7 +607,6 @@ public:
 
 		if(index == -1) {
 			population.push_back( chromosome );
-			fitness.push_back( GeneticAlgorithm::INVALID_FITNESS_VALUE );
 			index = population.size() - 1;
 		} else if(index < population.size()) {
 			population[index] = chromosome;
@@ -619,6 +627,7 @@ public:
 
 	void setFitness(double fitness, int index=-1) {
 		if(index == -1) {
+			this->fitness.push_back( GeneticAlgorithm::INVALID_FITNESS_VALUE );
 			index = this->fitness.size()-1;
 		}
 
@@ -734,6 +743,7 @@ public:
 		 * Trim spaces.
 		 */
 		result.erase(result.size()-1, 1);
+		result += '\0';
 
 		return result;
 	}
@@ -744,6 +754,8 @@ public:
 
 		fitness.clear();
 		population.clear();
+		bestIndex = 0;
+		worstIndex = 0;
 
 		int size = 0;
 		in >> size;
@@ -754,8 +766,8 @@ public:
 			in >> value;
 			in >> commands;
 
-			fitness.push_back(value);
-			population.push_back(commands);
+			setChromosome(commands);
+			setFitness(value);
 		}
 	}
 };
@@ -790,7 +802,7 @@ public:
 	static void addRandomCommands(GeneticAlgorithm &ga, const RubiksCube &solved, const RubiksCube &shuffled, int populationSize=0) {
 		for(int p=0; p<populationSize; p++) {
 			RubiksCube mixed;
-			std::string commands = mixed.shuffle(CHROMOZOMES_INITIAL_SIZE);
+			std::string commands = mixed.shuffle(CHROMOSOMES_INITIAL_SIZE);
 			ga.setChromosome( commands );
 			ga.setFitness(evaluate(solved, shuffled, commands));
 		}
@@ -823,82 +835,105 @@ static int size = 0;
 static char buffer[RECEIVE_BUFFER_SIZE];
 
 static RubiksCube solved;
-static RubiksCube shuffled;
-
-static GeneticAlgorithm ga;
 
 static void master() {
+	unsigned long counter = 0;
+
 	if(rank != ROOT_NODE) {
 		return;
 	}
 
+	/*
+	 * Cube to be solved.
+	 */
+	RubiksCube shuffled;
 	shuffled.shuffle(CUBE_SHUFFLING_STEPS);
-	std::cout << "Sender Cube: ";
-	std::cout << std::endl;
-	std::cout << shuffled;
-	std::cout << std::endl;
-	std::cout << "Sender Difference: " << shuffled.compare(solved);
-	std::cout << std::endl;
+	std::cout << "Sender : " << std::to_string(shuffled.compare(solved)) << std::endl;
 
-	const std::string &value = shuffled.toString();
-
-	/*
-	 * Send shffled cube to all other nodes.
-	 */
-	for(int r=0; r<size; r++) {
+	do {
 		/*
-		 * Root node is not included.
-		 */
-		if(r == ROOT_NODE) {
-			continue;
+		 * Send shffled cube to all other nodes.
+		 */{
+			const std::string &value = shuffled.toString();
+			for(int r=0; r<size; r++) {
+				/*
+				 * Root node is not included.
+				 */
+				if(r == ROOT_NODE) {
+					continue;
+				}
+
+				MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
+			}
 		}
 
-		MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
-	}
-
-	/*
-	 * Calculate as regular node.
-	 */
-	GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
-	GeneticAlgorithmOptimizer::addRandomCommands(ga, solved, shuffled, LOCAL_POPULATION_SIZE);
-	GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_OPTIMIZATION_EPOCHES);
-	std::cout << "Sender Difference: " << shuffled.compare(solved);
-	std::cout << std::endl;
-
-	/*
-	 * Collect results from all other nodes.
-	 */
-	for(int r=0; r<size; r++) {
 		/*
-		 * Root node is not included.
+		 * Send GA population to all other nodes.
 		 */
-		if(r == ROOT_NODE) {
-			continue;
+		for(int r=0; r<size; r++) {
+			/*
+			 * Root node is not included.
+			 */
+			if(r == ROOT_NODE) {
+				continue;
+			}
+
+			GeneticAlgorithm ga;
+			if(counter == 0) {
+				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
+				GeneticAlgorithmOptimizer::addRandomCommands(ga, solved, shuffled, LOCAL_POPULATION_SIZE);
+			} else {
+				//TODO Implement migration strategy.
+			}
+			const std::string &value = ga.toString();
+			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
 		}
 
-		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		std::cout << "Worker After " << r << " : " << buffer << std::endl;
-	}
+		/*
+		 * Collect results from all other nodes.
+		 */
+		for(int r=0; r<size; r++) {
+			/*
+			 * Root node is not included.
+			 */
+			if(r == ROOT_NODE) {
+				continue;
+			}
+
+			MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			std::cout << "Worker " << r << " : " << buffer << std::endl;
+		}
+
+		counter++;
+	} while(counter < NUMBER_OF_BROADCASTS);
 }
 
 static void slave() {
+	unsigned long counter = 0;
+
 	if(rank == ROOT_NODE) {
 		return;
 	}
 
-	MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	shuffled.fromString(buffer);
-	std::cout << "Worker Before " << rank << " : " << shuffled.compare(solved) << std::endl;
+	do {
+		RubiksCube shuffled;
+		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		shuffled.fromString(buffer);
 
-	/*
-	 * Calculate as regular node.
-	 */
-	GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
-	GeneticAlgorithmOptimizer::addRandomCommands(ga, solved, shuffled, LOCAL_POPULATION_SIZE);
-	GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_OPTIMIZATION_EPOCHES);
+		GeneticAlgorithm ga;
+		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		ga.fromString(buffer);
 
-	std::string result = std::to_string(shuffled.compare(solved));
-	MPI_Send(result.c_str(), result.size(), MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD);
+		/*
+		 * Calculate as regular node.
+		 */
+		GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_OPTIMIZATION_EPOCHES);
+
+		std::string result = std::to_string(shuffled.compare(solved));
+		MPI_Send(result.c_str(), result.size(), MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD);
+
+		counter++;
+	} while(counter < NUMBER_OF_BROADCASTS);
 }
 
 int main(int argc, char **argv) {
@@ -912,11 +947,9 @@ int main(int argc, char **argv) {
 	 * Firs process will distribute the working tasks.
 	 */
 	master();
-
 	slave();
 
 	MPI_Finalize();
 
 	return( EXIT_SUCCESS );
 }
-
