@@ -10,10 +10,20 @@
 #include <mpi.h>
 #include <unistd.h>
 
+namespace std {
+template < typename T > std::string to_string( const T& n ) {
+	std::ostringstream stm ;
+	stm << n ;
+	return stm.str() ;
+}
+}
+
 #define ROOT_NODE 0
 #define DEFAULT_TAG 0
 
 #define RECEIVE_BUFFER_SIZE 100000
+
+#define INVALID_FITNESS_VALUE INT_MAX
 
 #define LOCAL_POPULATION_SIZE 37
 #define LOCAL_OPTIMIZATION_EPOCHES 10000
@@ -22,7 +32,7 @@
 
 #define CUBE_SHUFFLING_STEPS 7
 
-#define NUMBER_OF_BROADCASTS 1
+#define NUMBER_OF_BROADCASTS 3
 
 #define OPTIMIZATION_TIME_MILLISECONDS 600000L
 
@@ -548,14 +558,28 @@ std::ostream& operator<< (std::ostream &out, const RubiksCube &cube) {
 
 class Chromosome {
 public:
-	std::string command;
 	double fitness;
+	std::string command;
+
+	Chromosome(std::string command, double fitness) {
+		this->command = command;
+		this->fitness = fitness;
+	}
+
+	Chromosome(const Chromosome &chromosome) {
+		this->command = chromosome.command;
+		this->fitness = chromosome.fitness;
+	}
+
+	Chromosome() {
+		this->command = "";
+		this->fitness = INVALID_FITNESS_VALUE;
+	}
 };
 
 class GeneticAlgorithm {
 private:
-	std::vector<std::string> population;
-	std::vector<double> fitness;
+	std::vector<Chromosome> population;
 	int resultIndex;
 	int firstIndex;
 	int secondIndex;
@@ -569,13 +593,12 @@ private:
 			resultIndex = rand() % population.size();
 			firstIndex = rand() % population.size();
 			secondIndex = rand() % population.size();
-		} while(resultIndex==firstIndex || resultIndex==secondIndex || (resultIndex == bestIndex && KEEP_ELITE==true) || population[firstIndex].length()==0 || population[secondIndex].length()==0);
+		} while(resultIndex==firstIndex || resultIndex==secondIndex || (resultIndex == bestIndex && KEEP_ELITE==true) || population[firstIndex].command.length()==0 || population[secondIndex].command.length()==0);
 	}
 
 	friend std::ostream& operator<< (std::ostream &out, const GeneticAlgorithm &ga);
 
 public:
-	static const int INVALID_FITNESS_VALUE = INT_MAX;
 	static const bool KEEP_ELITE = true;
 
 public:
@@ -584,7 +607,6 @@ public:
 			populationSize = 0;
 		}
 		population.resize(populationSize);
-		fitness.resize(populationSize);
 		resultIndex = 0;
 		firstIndex = 0;
 		secondIndex = 0;
@@ -600,7 +622,7 @@ public:
 		return( bestIndex );
 	}
 
-	void setChromosome(std::string chromosome, int index=-1) {
+	void setChromosome(Chromosome chromosome, int index=-1) {
 		if(index < -1) {
 			return;
 		}
@@ -615,11 +637,11 @@ public:
 		//TODO Calculate fitness.
 	}
 
-	const std::string& getChromosome(int index) const {
+	const Chromosome& getChromosome(int index) const {
 		const static std::string EMPTY_STRING = "";
 
 		if(population.size() <= index || index <= -1) {
-			return( EMPTY_STRING );
+			//TODO Handle exception.
 		}
 
 		return( population[index] );
@@ -627,29 +649,30 @@ public:
 
 	void setFitness(double fitness, int index=-1) {
 		if(index == -1) {
-			this->fitness.push_back( GeneticAlgorithm::INVALID_FITNESS_VALUE );
-			index = this->fitness.size()-1;
+			index = population.size()-1;
 		}
 
-		if(this->fitness.size() <= index) {
+		if(population.size() <= index) {
+			//TODO Handle exception.
 			return;
 		}
 
-		this->fitness[index] = fitness;
-		if(fitness < this->fitness[bestIndex]) {
+		population[index].fitness = fitness;
+		if(fitness < population[bestIndex].fitness) {
 			bestIndex = index;
 		}
-		if(fitness > this->fitness[worstIndex]) {
+		if(fitness > population[worstIndex].fitness) {
 			worstIndex = index;
 		}
 	}
 
 	double getFitness(int index) {
 		if(population.size() <= index || index <= -1) {
+			//TODO Handle exception.
 			return( INVALID_FITNESS_VALUE );
 		}
 
-		return( fitness[index] );
+		return( population[index].fitness );
 	}
 
 	int size() {
@@ -670,57 +693,57 @@ public:
 		if (percent < CROSSOVER_RESULT_INTO_WORST_PERCENT) {
 			do {
 				selectRandom();
-			} while (fitness[resultIndex] < fitness[firstIndex]
-					 || fitness[resultIndex] < fitness[secondIndex]);
+			} while (population[resultIndex].fitness < population[firstIndex].fitness
+					 || population[resultIndex].fitness < population[secondIndex].fitness);
 		} else if (percent
 				   < (CROSSOVER_RESULT_INTO_WORST_PERCENT
 					  + CROSSOVER_RESULT_INTO_MIDDLE_PERCENT)) {
 			do {
 				selectRandom();
-			} while (fitness[resultIndex] < fitness[firstIndex]
-					 || fitness[resultIndex] > fitness[secondIndex]);
+			} while (population[resultIndex].fitness < population[firstIndex].fitness
+					 || population[resultIndex].fitness > population[secondIndex].fitness);
 		} else if (percent
 				   < (CROSSOVER_RESULT_INTO_WORST_PERCENT
 					  + CROSSOVER_RESULT_INTO_MIDDLE_PERCENT
 					  + CROSSOVER_RESULT_INTO_BEST_PERCENT)) {
 			do {
 				selectRandom();
-			} while (fitness[resultIndex] > fitness[firstIndex]
-					 || fitness[resultIndex] > fitness[secondIndex]);
+			} while (population[resultIndex].fitness > population[firstIndex].fitness
+					 || population[resultIndex].fitness > population[secondIndex].fitness);
 		}
 	}
 
 	void crossover() {
-		population[resultIndex] = population[firstIndex].substr(0, rand()%(population[firstIndex].length())+1);
-		population[resultIndex] += population[secondIndex].substr(rand()%population[secondIndex].length(), population[secondIndex].length());
-		fitness[resultIndex] = INVALID_FITNESS_VALUE;
+		population[resultIndex].command = population[firstIndex].command.substr(0, rand()%(population[firstIndex].command.length())+1);
+		population[resultIndex].command += population[secondIndex].command.substr(rand()%population[secondIndex].command.length(), population[secondIndex].command.length());
+		population[resultIndex].fitness = INVALID_FITNESS_VALUE;
 	}
 
 	void mutation() {
-		int index = rand() % population[resultIndex].length();
+		int index = rand() % population[resultIndex].command.length();
 
 		switch(rand()%6) {
 		case 0:
-			population[resultIndex][index]=(char)TOP;
+			population[resultIndex].command[index]=(char)TOP;
 			break;
 		case 1:
-			population[resultIndex][index]=(char)LEFT;
+			population[resultIndex].command[index]=(char)LEFT;
 			break;
 		case 2:
-			population[resultIndex][index]=(char)RIGHT;
+			population[resultIndex].command[index]=(char)RIGHT;
 			break;
 		case 3:
-			population[resultIndex][index]=(char)FRONT;
+			population[resultIndex].command[index]=(char)FRONT;
 			break;
 		case 4:
-			population[resultIndex][index]=(char)BACK;
+			population[resultIndex].command[index]=(char)BACK;
 			break;
 		case 5:
-			population[resultIndex][index]=(char)DOWN;
+			population[resultIndex].command[index]=(char)DOWN;
 			break;
 		}
 
-		fitness[resultIndex] = INVALID_FITNESS_VALUE;
+		population[resultIndex].fitness = INVALID_FITNESS_VALUE;
 	}
 
 	const std::string& toString() {
@@ -733,9 +756,9 @@ public:
 		result += " ";
 
 		for(int i=0; i<population.size(); i++) {
-			result += std::to_string(fitness[i]);
+			result += std::to_string(population[i].fitness);
 			result += " ";
-			result += population[i];
+			result += population[i].command;
 			result += " ";
 		}
 
@@ -752,7 +775,6 @@ public:
 		std::string buffer(text);
 		std::istringstream in(buffer);
 
-		fitness.clear();
 		population.clear();
 		bestIndex = 0;
 		worstIndex = 0;
@@ -766,18 +788,17 @@ public:
 			in >> value;
 			in >> commands;
 
-			setChromosome(commands);
-			setFitness(value);
+			setChromosome(Chromosome(commands,value));
 		}
 	}
 };
 
 std::ostream& operator<< (std::ostream &out, const GeneticAlgorithm &ga) {
 	for(int p=0; p<ga.population.size(); p++) {
-		out << ga.fitness[p];
+		out << ga.population[p].fitness;
 		out << "\t";
-		for(int i=0; i<ga.population[p].length(); i++) {
-			out << ga.population[p][i];
+		for(int i=0; i<ga.population[p].command.length(); i++) {
+			out << ga.population[p].command[i];
 		}
 		out << std::endl;
 	}
@@ -803,13 +824,13 @@ public:
 		for(int p=0; p<populationSize; p++) {
 			RubiksCube mixed;
 			std::string commands = mixed.shuffle(CHROMOSOMES_INITIAL_SIZE);
-			ga.setChromosome( commands );
+			ga.setChromosome( Chromosome(commands,INVALID_FITNESS_VALUE) );
 			ga.setFitness(evaluate(solved, shuffled, commands));
 		}
 	}
 
 	static void addEmptyCommand(GeneticAlgorithm &ga, const RubiksCube &solved, const RubiksCube &shuffled) {
-		ga.setChromosome("");
+		ga.setChromosome(Chromosome("",INVALID_FITNESS_VALUE));
 		ga.setFitness(evaluate(solved, shuffled, ""));
 	}
 
@@ -819,10 +840,10 @@ public:
 			ga.crossover();
 			ga.mutation();
 			int index = ga.getResultIndex();
-			ga.setFitness(evaluate(solved, shuffled, ga.getChromosome(index)), index);
+			ga.setFitness(evaluate(solved, shuffled, ga.getChromosome(index).command), index);
 		}
 
-		shuffled.execute(ga.getChromosome(ga.getBestIndex()));
+		shuffled.execute(ga.getChromosome(ga.getBestIndex()).command);
 	}
 };
 
@@ -884,6 +905,10 @@ static void master() {
 				GeneticAlgorithmOptimizer::addRandomCommands(ga, solved, shuffled, LOCAL_POPULATION_SIZE);
 			} else {
 				//TODO Implement migration strategy.
+				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
+				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
+				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
+				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
 			}
 			const std::string &value = ga.toString();
 			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
@@ -953,3 +978,4 @@ int main(int argc, char **argv) {
 
 	return( EXIT_SUCCESS );
 }
+
