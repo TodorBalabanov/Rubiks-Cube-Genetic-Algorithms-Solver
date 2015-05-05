@@ -12,8 +12,6 @@ private:
 	int bestIndex;
 	int worstIndex;
 
-	std::string result;
-
 	void selectRandom() {
 		do {
 			resultIndex = rand() % population.size();
@@ -38,6 +36,10 @@ public:
 		secondIndex = 0;
 		bestIndex = 0;
 		worstIndex = 0;
+	}
+
+	GeneticAlgorithm(const GeneticAlgorithm &ga) {
+		(*this) = ga;
 	}
 
 	int getResultIndex() {
@@ -71,6 +73,29 @@ public:
 		}
 
 		return( population[index] );
+	}
+
+	const Chromosome& getBestChromosome() const {
+		return( population[bestIndex] );
+	}
+
+	const Chromosome& getWorstChromosome() const {
+		return( population[worstIndex] );
+	}
+
+	void replaceWorst(const Chromosome& chromosome) {
+		population[worstIndex] = chromosome;
+
+		bestIndex = 0;
+		worstIndex = 0;
+		for(int i=0; i<population.size(); i++) {
+			if(population[i].fitness < population[bestIndex].fitness) {
+				bestIndex = i;
+			}
+			if(population[i].fitness > population[worstIndex].fitness) {
+				worstIndex = i;
+			}
+		}
 	}
 
 	void setFitness(double fitness, int index=-1) {
@@ -173,6 +198,7 @@ public:
 	}
 
 	const std::string& toString() {
+		static std::string result;
 		result = "";
 
 		/*
@@ -216,6 +242,17 @@ public:
 
 			setChromosome(Chromosome(commands,value));
 		}
+	}
+
+	void operator=(const GeneticAlgorithm &ga) {
+		this->population.clear();
+
+		this->population = ga.population;
+		this->resultIndex = ga.resultIndex;
+		this->firstIndex = ga.firstIndex;
+		this->secondIndex = ga.secondIndex;
+		this->bestIndex = ga.bestIndex;
+		this->worstIndex = ga.worstIndex;
 	}
 };
 

@@ -47,7 +47,11 @@ static void master() {
 	shuffled.shuffle(CUBE_SHUFFLING_STEPS);
 	std::cout << "Sender : " << std::to_string(shuffled.compare(solved)) << std::endl;
 
+	std::map<int,GeneticAlgorithm> populations;
+
 	do {
+		std::cout << "Round : " << (counter+1) << std::endl;
+
 		/*
 		 * Send shffled cube to all other nodes.
 		 */{
@@ -79,14 +83,18 @@ static void master() {
 			if(counter == 0) {
 				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
 				GeneticAlgorithmOptimizer::addRandomCommands(ga, solved, shuffled, LOCAL_POPULATION_SIZE);
+				populations[r] = ga;
 			} else {
-				//TODO Implement migration strategy.
-				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
-				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
-				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
-				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
+				/*
+				 * Ring migration strategy.
+				 */
+				int next = (r+1) % size;
+				while(next == ROOT_NODE) {
+					next = (next+1) % size;
+				}
+				populations[r].replaceWorst(populations[next].getBestChromosome());
 			}
-			const std::string &value = ga.toString();
+			const std::string &value = populations[r].toString();
 			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
 		}
 
@@ -101,8 +109,11 @@ static void master() {
 				continue;
 			}
 
+			GeneticAlgorithm ga;
 			MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			std::cout << "Worker " << r << " : " << buffer << std::endl;
+			ga.fromString(buffer);
+			populations[r] = ga;
+			std::cout << "Worker " << r << " : " << ga.getBestChromosome().fitness << std::endl;
 		}
 
 		counter++;
@@ -130,7 +141,7 @@ static void slave() {
 		 */
 		GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_OPTIMIZATION_EPOCHES);
 
-		std::string result = std::to_string(shuffled.compare(solved));
+		std::string result = ga.toString();
 		MPI_Send(result.c_str(), result.size(), MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD);
 
 		counter++;

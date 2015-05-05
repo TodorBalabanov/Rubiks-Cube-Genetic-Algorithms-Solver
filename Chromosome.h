@@ -12,13 +12,17 @@ public:
 	}
 
 	Chromosome(const Chromosome &chromosome) {
-		this->command = chromosome.command;
-		this->fitness = chromosome.fitness;
+		(*this) = chromosome;
 	}
 
 	Chromosome() {
 		this->command = "";
 		this->fitness = INVALID_FITNESS_VALUE;
+	}
+
+	void operator=(const Chromosome &chromosome) {
+		this->command = chromosome.command;
+		this->fitness = chromosome.fitness;
 	}
 };
 
