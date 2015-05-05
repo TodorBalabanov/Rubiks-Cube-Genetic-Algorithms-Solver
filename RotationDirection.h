@@ -1,0 +1,9 @@
+#ifndef ROTATIONDIRECTION_H_INCLUDED
+#define ROTATIONDIRECTION_H_INCLUDED
+
+enum RotationDirection {
+	COUNTERCLOCKWISE = -1,
+	CLOCKWISE = +1
+};
+
+#endif
