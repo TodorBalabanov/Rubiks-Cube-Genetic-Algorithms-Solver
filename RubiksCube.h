@@ -327,6 +327,11 @@ public:
 		numberOfTimes %= 4;
 
 		if (direction == CLOCKWISE) {
+			if (side == NONE) {
+				/*
+				* Do nothing.
+				*/
+			}
 			if (side == TOP) {
 				spinClockwise(top, numberOfTimes, TOP);
 			}

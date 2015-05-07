@@ -210,7 +210,11 @@ public:
 		for(int i=0; i<population.size(); i++) {
 			result += std::to_string(population[i].fitness);
 			result += " ";
-			result += population[i].command;
+			if(population[i].command == "") {
+				result += NONE;
+			} else {
+				result += population[i].command;
+			}
 			result += " ";
 		}
 
@@ -234,7 +238,7 @@ public:
 		int size = 0;
 		in >> size;
 
-		int value;
+		double value;
 		std::string commands;
 		for(int i=0; i<size; i++) {
 			in >> value;

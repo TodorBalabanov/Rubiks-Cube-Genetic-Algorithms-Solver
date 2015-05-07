@@ -49,24 +49,24 @@ static void master() {
 
 	std::map<int,GeneticAlgorithm> populations;
 
+	/*
+	 * Send shffled cube to all other nodes.
+	 */{
+		const std::string &value = shuffled.toString();
+		for(int r=0; r<size; r++) {
+			/*
+			 * Root node is not included.
+			 */
+			if(r == ROOT_NODE) {
+				continue;
+			}
+
+			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
+		}
+	}
+
 	do {
 		std::cout << "Round : " << (counter+1) << std::endl;
-
-		/*
-		 * Send shffled cube to all other nodes.
-		 */{
-			const std::string &value = shuffled.toString();
-			for(int r=0; r<size; r++) {
-				/*
-				 * Root node is not included.
-				 */
-				if(r == ROOT_NODE) {
-					continue;
-				}
-
-				MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
-			}
-		}
 
 		/*
 		 * Send GA population to all other nodes.
@@ -127,11 +127,11 @@ static void slave() {
 		return;
 	}
 
-	do {
-		RubiksCube shuffled;
-		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		shuffled.fromString(buffer);
+	RubiksCube shuffled;
+	MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	shuffled.fromString(buffer);
 
+	do {
 		GeneticAlgorithm ga;
 		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		ga.fromString(buffer);

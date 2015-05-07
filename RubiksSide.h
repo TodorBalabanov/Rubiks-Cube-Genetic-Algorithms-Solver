@@ -2,6 +2,7 @@
 #define RUBIKSSIDE_H_INCLUDED
 
 enum RubiksSide {
+	NONE = 'N',
 	TOP = 'T',
 	LEFT = 'L',
 	BACK = 'B',
