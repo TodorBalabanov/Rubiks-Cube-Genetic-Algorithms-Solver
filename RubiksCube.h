@@ -1,6 +1,7 @@
 #ifndef RUBIKSCUBE_H_INCLUDED
 #define RUBIKSCUBE_H_INCLUDED
 
+#include "Common.h"
 #include "RubiksSide.h"
 #include "RubiksColor.h"
 #include "RotationDirection.h"

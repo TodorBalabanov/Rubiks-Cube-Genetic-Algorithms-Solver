@@ -1,3 +1,4 @@
+#include <map>
 #include <cmath>
 #include <vector>
 #include <climits>
@@ -10,18 +11,11 @@
 #include <mpi.h>
 #include <unistd.h>
 
+#include "Common.h"
 #include "Constants.h"
 #include "RubiksCube.h"
 #include "GeneticAlgorithm.h"
 #include "GeneticAlgorithmOptimizer.h"
-
-namespace std {
-template < typename T > std::string to_string( const T& n ) {
-	std::ostringstream stm;
-	stm << n ;
-	return stm.str() ;
-}
-}
 
 static int rank = -1;
 static int size = 0;
