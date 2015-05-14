@@ -1,6 +1,8 @@
 #ifndef GENETICALGORITHMOPTIMIZER_H_INCLUDED
 #define GENETICALGORITHMOPTIMIZER_H_INCLUDED
 
+#include "RubiksSide.h"
+
 class GeneticAlgorithmOptimizer {
 private:
 	static double evaluate(const RubiksCube &solved, const RubiksCube &shuffled, const std::string &commands) {
@@ -25,8 +27,9 @@ public:
 	}
 
 	static void addEmptyCommand(GeneticAlgorithm &ga, const RubiksCube &solved, const RubiksCube &shuffled) {
-		ga.setChromosome(Chromosome("",INVALID_FITNESS_VALUE));
-		ga.setFitness(evaluate(solved, shuffled, ""));
+		char value[] = {NONE, '\0'};
+		ga.setChromosome(Chromosome(std::string(value),INVALID_FITNESS_VALUE));
+		ga.setFitness(evaluate(solved, shuffled, std::string(value)));
 	}
 
 	static void optimize(GeneticAlgorithm &ga, RubiksCube &solved, RubiksCube &shuffled, long epoches=0) {
@@ -34,6 +37,7 @@ public:
 			ga.selection();
 			ga.crossover();
 			ga.mutation();
+			//TODO Unneeded operations removal.
 			int index = ga.getResultIndex();
 			ga.setFitness(evaluate(solved, shuffled, ga.getChromosome(index).command), index);
 		}

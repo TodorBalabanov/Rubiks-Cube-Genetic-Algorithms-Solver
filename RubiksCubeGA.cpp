@@ -78,6 +78,9 @@ static void master() {
 				GeneticAlgorithmOptimizer::addEmptyCommand(ga, solved, shuffled);
 				GeneticAlgorithmOptimizer::addRandomCommands(ga, solved, shuffled, LOCAL_POPULATION_SIZE);
 				populations[r] = ga;
+if(r==1){
+std::cout << populations[r] << std::endl;
+}
 			} else {
 				/*
 				 * Ring migration strategy.
@@ -107,6 +110,9 @@ static void master() {
 			MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 			ga.fromString(buffer);
 			populations[r] = ga;
+if(r==1){
+std::cout << populations[r] << std::endl;
+}
 			std::cout << "Worker " << r << " : " << ga.getBestChromosome().fitness << std::endl;
 		}
 
@@ -129,6 +135,10 @@ static void slave() {
 		GeneticAlgorithm ga;
 		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		ga.fromString(buffer);
+if(rank==1){
+std::cout << ga << std::endl;
+}
+
 
 		/*
 		 * Calculate as regular node.
@@ -136,6 +146,9 @@ static void slave() {
 		GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_OPTIMIZATION_EPOCHES);
 
 		std::string result = ga.toString();
+if(rank==1){
+std::cout << ga << std::endl;
+}
 		MPI_Send(result.c_str(), result.size(), MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD);
 
 		counter++;
