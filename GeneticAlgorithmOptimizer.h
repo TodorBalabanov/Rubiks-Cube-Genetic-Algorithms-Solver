@@ -27,7 +27,7 @@ public:
 	}
 
 	static void addEmptyCommand(GeneticAlgorithm &ga, const RubiksCube &solved, const RubiksCube &shuffled) {
-		char value[] = {NONE, '\0'};
+		static const char value[] = {NONE, '\0'};
 		ga.setChromosome(Chromosome(std::string(value),INVALID_FITNESS_VALUE));
 		ga.setFitness(evaluate(solved, shuffled, std::string(value)));
 	}
@@ -37,7 +37,7 @@ public:
 			ga.selection();
 			ga.crossover();
 			ga.mutation();
-			//TODO Unneeded operations removal.
+			ga.reduction();
 			int index = ga.getResultIndex();
 			ga.setFitness(evaluate(solved, shuffled, ga.getChromosome(index).command), index);
 		}

@@ -197,6 +197,37 @@ public:
 		population[resultIndex].fitness = INVALID_FITNESS_VALUE;
 	}
 
+	void reduction() {
+		static const char nop[] = {NONE, '\0'};
+
+		if(COMMANDS_REDUCTION == false) {
+			return;
+		}
+
+		bool done = true;
+		std::string &value = population[resultIndex].command;
+
+		do {
+			done = true;
+
+			for(int i=1, j=0; i<value.size(); i++) {
+				if(value[i] == value[i-1]) {
+					j++;
+				} else {
+					j = 0;
+				}
+
+				if(j == 3) {
+					done = false;
+					value = value.substr(0,i-3) + nop + value.substr(i+1);
+
+					j = 0;
+					i -= 3;
+				}
+			}
+		} while(done == false);
+	}
+
 	const std::string& toString() {
 		static std::string result;
 		result = "";
@@ -245,6 +276,13 @@ public:
 			in >> commands;
 
 			setChromosome(Chromosome(commands,value));
+
+			if(population[bestIndex].fitness > population[i].fitness) {
+				bestIndex = i;
+			}
+			if(population[worstIndex].fitness < population[i].fitness) {
+				worstIndex = i;
+			}
 		}
 	}
 
