@@ -79,6 +79,10 @@ public:
 		return( population[bestIndex] );
 	}
 
+	const Chromosome& getRandomChromosome() const {
+		return( population[rand()%population.size()] );
+	}
+
 	const Chromosome& getWorstChromosome() const {
 		return( population[worstIndex] );
 	}

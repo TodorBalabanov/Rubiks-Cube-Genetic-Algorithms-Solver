@@ -86,7 +86,12 @@ static void master() {
 				while(next == ROOT_NODE) {
 					next = (next+1) % size;
 				}
-				populations[r].replaceWorst(populations[next].getBestChromosome());
+
+				if(RANDOM_TRAVELER == true) {
+					populations[r].replaceWorst(populations[next].getRandomChromosome());
+				} else {
+					populations[r].replaceWorst(populations[next].getBestChromosome());
+				}
 			}
 			const std::string &value = populations[r].toString();
 			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
