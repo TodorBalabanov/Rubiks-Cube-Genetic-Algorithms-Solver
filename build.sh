@@ -6,4 +6,3 @@ find . -name "*.orig" -type f -delete
 rm RubiksCubeGA.exe
 mpicxx RubiksCubeGA.cpp -o RubiksCubeGA.exe
 mpirun -np 8 ./RubiksCubeGA.exe %1
-

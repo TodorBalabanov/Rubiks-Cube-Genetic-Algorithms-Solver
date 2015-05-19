@@ -27,7 +27,7 @@ static char buffer[RECEIVE_BUFFER_SIZE];
 
 static RubiksCube solved;
 
-static void master() {
+static void master1() {
 	unsigned long counter = 0;
 
 	if(rank != ROOT_NODE) {
@@ -40,8 +40,6 @@ static void master() {
 	RubiksCube shuffled;
 	shuffled.shuffle(CUBE_SHUFFLING_STEPS);
 	std::cout << "Sender : " << std::to_string(shuffled.compare(solved)) << std::endl;
-
-	std::map<int,GeneticAlgorithm> populations;
 
 	/*
 	 * Send shffled cube to all other nodes.
@@ -59,6 +57,7 @@ static void master() {
 		}
 	}
 
+	std::map<int,GeneticAlgorithm> populations;
 	do {
 		std::cout << "Round : " << (counter+1) << std::endl;
 
@@ -119,7 +118,93 @@ static void master() {
 	} while(counter < NUMBER_OF_BROADCASTS);
 }
 
-static void slave() {
+static void master2() {
+	unsigned long counter = 0;
+
+	if(rank != ROOT_NODE) {
+		return;
+	}
+
+	/*
+	 * Cube to be solved.
+	 */
+	RubiksCube shuffled;
+	shuffled.shuffle(CUBE_SHUFFLING_STEPS);
+	std::cout << "Sender : " << std::to_string(shuffled.compare(solved)) << std::endl;
+
+	/*
+	 * Send shffled cube to all other nodes.
+	 */{
+		const std::string &value = shuffled.toString();
+		for(int r=0; r<size; r++) {
+			/*
+			 * Root node is not included.
+			 */
+			if(r == ROOT_NODE) {
+				continue;
+			}
+
+			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
+		}
+	}
+
+	GeneticAlgorithm global;
+	std::map<int,GeneticAlgorithm> populations;
+	do {
+		std::cout << "Round : " << (counter+1) << std::endl;
+
+		for(int r=0; r<size; r++) {
+			/*
+			 * Root node is not included.
+			 */
+			if(r == ROOT_NODE) {
+				continue;
+			}
+
+			if(counter == 0) {
+				GeneticAlgorithmOptimizer::addEmptyCommand(global, solved, shuffled);
+				GeneticAlgorithmOptimizer::addRandomCommands(global, solved, shuffled, LOCAL_POPULATION_SIZE*size);
+				GeneticAlgorithm ga;
+				global.subset(ga, LOCAL_POPULATION_SIZE);
+				populations[r] = ga;
+			} else {
+				//TODO Find better way to control this probability.
+				if(rand()%size == 0) {
+					GeneticAlgorithm ga;
+					global.subset(ga, LOCAL_POPULATION_SIZE);
+					populations[r] = ga;
+				}
+			}
+			const std::string &value = populations[r].toString();
+			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
+		}
+
+		/*
+		 * Collect results from all other nodes.
+		 */
+		for(int r=0; r<size; r++) {
+			/*
+			 * Root node is not included.
+			 */
+			if(r == ROOT_NODE) {
+				continue;
+			}
+
+			GeneticAlgorithm ga;
+			MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			ga.fromString(buffer);
+			populations[r] = ga;
+			if(ga.getBestFitness() < global.getBestFitness()) {
+				global.setChromosome( ga.getBestChromosome() );
+			}
+			std::cout << "Worker " << r << " : " << ga.getBestChromosome().fitness << std::endl;
+		}
+
+		counter++;
+	} while(counter < NUMBER_OF_BROADCASTS);
+}
+
+static void slave1() {
 	unsigned long counter = 0;
 
 	if(rank == ROOT_NODE) {
@@ -147,6 +232,10 @@ static void slave() {
 	} while(counter < NUMBER_OF_BROADCASTS);
 }
 
+static void slave2() {
+	slave1();
+}
+
 int main(int argc, char **argv) {
 	MPI_Init (&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -157,8 +246,10 @@ int main(int argc, char **argv) {
 	/*
 	 * Firs process will distribute the working tasks.
 	 */
-	master();
-	slave();
+	//master1();
+	//slave1();
+	master2();
+	slave2();
 
 	MPI_Finalize();
 

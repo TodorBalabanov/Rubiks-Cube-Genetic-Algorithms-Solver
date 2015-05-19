@@ -62,7 +62,12 @@ public:
 			population[index] = chromosome;
 		}
 
-		//TODO Calculate fitness.
+		if(population[index].fitness < population[bestIndex].fitness) {
+			bestIndex = index;
+		}
+		if(population[index].fitness > population[worstIndex].fitness) {
+			worstIndex = index;
+		}
 	}
 
 	const Chromosome& getChromosome(int index) const {
@@ -130,8 +135,22 @@ public:
 		return( population[index].fitness );
 	}
 
+	double getBestFitness() const {
+		return( population[bestIndex].fitness );
+	}
+
 	int size() {
 		return( population.size() );
+	}
+
+	void subset(GeneticAlgorithm &ga, const int size) const {
+		if(population.size() <= 0) {
+			return;
+		}
+
+		for(int i=0; i<size; i++) {
+			ga.setChromosome( population[ rand()%population.size() ] );
+		}
 	}
 
 	void selection() {
