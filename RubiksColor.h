@@ -3,12 +3,12 @@
 
 enum RubiksColor {
 	BLANK = 0,
-	GREEN = 1,
-	PURPLE = 2,
+	RED = 1,
+	BLUE = 2,
 	YELLOW = 3,
-	RED = 4,
-	WHITE = 5,
-	BLUE = 6
+	WHITE = 4,
+	GREEN = 5,
+	PURPLE = 6,
 };
 
 #endif
