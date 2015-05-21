@@ -26,10 +26,9 @@ static int size = 0;
 static char buffer[RECEIVE_BUFFER_SIZE];
 
 static RubiksCube solved;
+static RubiksCube shuffled;
 
-static void master1() {
-	unsigned long counter = 0;
-
+static void shuffle() {
 	if(rank != ROOT_NODE) {
 		return;
 	}
@@ -37,9 +36,16 @@ static void master1() {
 	/*
 	 * Cube to be solved.
 	 */
-	RubiksCube shuffled;
 	shuffled.shuffle(CUBE_SHUFFLING_STEPS);
 	std::cout << "Sender : " << std::to_string(shuffled.compare(solved)) << std::endl;
+}
+
+static void master1() {
+	unsigned long counter = 0;
+
+	if(rank != ROOT_NODE) {
+		return;
+	}
 
 	/*
 	 * Send shffled cube to all other nodes.
@@ -126,13 +132,6 @@ static void master2() {
 	}
 
 	/*
-	 * Cube to be solved.
-	 */
-	RubiksCube shuffled;
-	shuffled.shuffle(CUBE_SHUFFLING_STEPS);
-	std::cout << "Sender : " << std::to_string(shuffled.compare(solved)) << std::endl;
-
-	/*
 	 * Send shffled cube to all other nodes.
 	 */{
 		const std::string &value = shuffled.toString();
@@ -169,7 +168,7 @@ static void master2() {
 				populations[r] = ga;
 			} else {
 				//TODO Find better way to control this probability.
-				if(rand()%size == 0) {
+				if(rand()%(NUMBER_OF_BROADCASTS/10) == 0) {
 					GeneticAlgorithm ga;
 					global.subset(ga, LOCAL_POPULATION_SIZE);
 					populations[r] = ga;
@@ -200,6 +199,9 @@ static void master2() {
 			std::cout << "Worker " << r << " : " << ga.getBestChromosome().fitness << std::endl;
 		}
 
+		std::cout << "Global : " << global.getBestChromosome().fitness << std::endl;
+
+
 		counter++;
 	} while(counter < NUMBER_OF_BROADCASTS);
 }
@@ -211,7 +213,6 @@ static void slave1() {
 		return;
 	}
 
-	RubiksCube shuffled;
 	MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	shuffled.fromString(buffer);
 
@@ -246,8 +247,9 @@ int main(int argc, char **argv) {
 	/*
 	 * Firs process will distribute the working tasks.
 	 */
-	//master1();
-	//slave1();
+	shuffle();
+	master1();
+	slave1();
 	master2();
 	slave2();
 
