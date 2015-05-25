@@ -5,4 +5,4 @@ astyle "*.h" --indent=force-tab --style=java / -A2 --recursive
 find . -name "*.orig" -type f -delete
 rm RubiksCubeGA.exe
 mpicxx RubiksCubeGA.cpp -o RubiksCubeGA.exe
-mpirun -np 8 ./RubiksCubeGA.exe %1
+nohup nice mpirun -np 8 ./RubiksCubeGA.exe $1
