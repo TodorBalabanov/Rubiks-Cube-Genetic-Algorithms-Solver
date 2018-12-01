@@ -175,16 +175,16 @@ private:
 
 		for(int i=0; i<3; i++) {
 			for(int j=0; j<3; j++) {
-				difference += abs(top[i][j]-cube.top[i][j]);
-				difference += abs(left[i][j]-cube.left[i][j]);
-				difference += abs(right[i][j]-cube.right[i][j]);
-				difference += abs(front[i][j]-cube.front[i][j]);
-				difference += abs(back[i][j]-cube.back[i][j]);
-				difference += abs(down[i][j]-cube.down[i][j]);
+				difference += (top[i][j]-cube.top[i][j])*(top[i][j]-cube.top[i][j]);
+				difference += (left[i][j]-cube.left[i][j])*(left[i][j]-cube.left[i][j]);
+				difference += (right[i][j]-cube.right[i][j])*(right[i][j]-cube.right[i][j]);
+				difference += (front[i][j]-cube.front[i][j])*(front[i][j]-cube.front[i][j]);
+				difference += (back[i][j]-cube.back[i][j])*(back[i][j]-cube.back[i][j]);
+				difference += (down[i][j]-cube.down[i][j])*(down[i][j]-cube.down[i][j]);
 			}
 		}
 
-		return difference;
+		return sqrt(difference);
 	}
 
 	double colors(const RubiksCube &cube) const {
