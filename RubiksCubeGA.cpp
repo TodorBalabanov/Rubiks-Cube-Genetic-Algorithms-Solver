@@ -216,6 +216,18 @@ int main(int argc, char **argv) {
 
 	/* Firs process will distribute the working tasks. */
 	shuffle();
+
+	solved.setDistanceType(HAUSDORFF);
+	shuffled.setDistanceType(HAUSDORFF);
+
+	master1();
+	slave1();
+	master2();
+	slave2();
+
+	solved.setDistanceType(EUCLIDEAN);
+	shuffled.setDistanceType(EUCLIDEAN);
+
 	master1();
 	slave1();
 	master2();

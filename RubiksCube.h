@@ -4,6 +4,7 @@
 #include "Common.h"
 #include "RubiksSide.h"
 #include "RubiksColor.h"
+#include "DistanceType.h"
 #include "RotationDirection.h"
 
 class RubiksCube {
@@ -18,6 +19,8 @@ private:
 	int (*sides[6])[3][3];
 
 	std::string result;
+
+	DistanceType distance = EUCLIDEAN;
 
 	void spinSide(RubiksSide side) {
 		static int buffer[ 3 ];
@@ -277,8 +280,27 @@ public:
 		}
 	}
 
+	void setDistanceType(DistanceType type) {
+		distance = type;
+	}
+
 	double compare(const RubiksCube &cube) const {
-		return euclidean(cube);
+		switch(distance) {
+		case
+				EUCLIDEAN:
+			return euclidean(cube);
+			break;
+		case
+				WEIGHTED:
+			break;
+		case
+				HAUSDORFF:
+			return euclidean(cube);
+			break;
+		default:
+			//TODO Do exception handling.
+			break;
+		}
 	}
 
 	void callSpin(RubiksSide side, RotationDirection direction, int numberOfTimes) {
