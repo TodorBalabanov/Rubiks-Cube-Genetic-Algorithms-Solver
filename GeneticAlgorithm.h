@@ -255,9 +255,7 @@ public:
 		static std::string result;
 		result = "";
 
-		/*
-		 * Keep population size.
-		 */
+		/* Keep population size. */
 		result += std::to_string(population.size());
 		result += " ";
 
@@ -272,9 +270,7 @@ public:
 			result += " ";
 		}
 
-		/*
-		 * Trim spaces.
-		 */
+		/* Trim spaces. */
 		result.erase(result.size()-1, 1);
 		result += '\0';
 

@@ -128,17 +128,13 @@ private:
 			return;
 		}
 
-		/*
-		 * Transponse.
-		 */
+		/* Transponse. */
 		for (int j = 0; j < 3; j++) {
 			for (int i = 0; i < 3; i++) {
 				newarray[j][i] = side[i][j];
 			}
 		}
-		/*
-		 * Rearrange.
-		 */
+		/* Rearrange. */
 		for (int i = 0; i < 3; i++) {
 			static int cache = 0;
 			cache = newarray[i][0];
@@ -171,20 +167,20 @@ private:
 	}
 
 	double euclidean(const RubiksCube &cube) const {
-		double difference = 0.0;
+		double distance = 0.0;
 
 		for(int i=0; i<3; i++) {
 			for(int j=0; j<3; j++) {
-				difference += (top[i][j]-cube.top[i][j])*(top[i][j]-cube.top[i][j]);
-				difference += (left[i][j]-cube.left[i][j])*(left[i][j]-cube.left[i][j]);
-				difference += (right[i][j]-cube.right[i][j])*(right[i][j]-cube.right[i][j]);
-				difference += (front[i][j]-cube.front[i][j])*(front[i][j]-cube.front[i][j]);
-				difference += (back[i][j]-cube.back[i][j])*(back[i][j]-cube.back[i][j]);
-				difference += (down[i][j]-cube.down[i][j])*(down[i][j]-cube.down[i][j]);
+				distance += (top[i][j]-cube.top[i][j])*(top[i][j]-cube.top[i][j]);
+				distance += (left[i][j]-cube.left[i][j])*(left[i][j]-cube.left[i][j]);
+				distance += (right[i][j]-cube.right[i][j])*(right[i][j]-cube.right[i][j]);
+				distance += (front[i][j]-cube.front[i][j])*(front[i][j]-cube.front[i][j]);
+				distance += (back[i][j]-cube.back[i][j])*(back[i][j]-cube.back[i][j]);
+				distance += (down[i][j]-cube.down[i][j])*(down[i][j]-cube.down[i][j]);
 			}
 		}
 
-		return sqrt(difference);
+		return sqrt(distance);
 	}
 
 	double colors(const RubiksCube &cube) const {
@@ -199,87 +195,57 @@ private:
 			{0, 4, 2, 2, 2, 2, 1},
 		};
 
-		double difference = 0.0;
+		double distance = 0.0;
 
-		/*
-		 * Count matches for all sides.
-		 */
+		/* Count matches for all sides. */
 		for(int s=0; s<6; s++) {
 			for(int i=0; i<3; i++) {
 				for(int j=0; j<3; j++) {
-					/*
-					 * If colors are equal calculate distance.
-					 */
-					difference += coefficients[(*sides[s])[1][1]][(*sides[s])[i][j]];
+					/* If colors are equal calculate distance. */
+					distance += coefficients[(*sides[s])[1][1]][(*sides[s])[i][j]];
 				}
 			}
 		}
 
-		return difference;
+		return distance;
+	}
+
+	double euclidean(const int side1[3][3], const int side2[3][3]) const {
+		double distance = 0.0;
+
+		for(int i=0; i<3; i++) {
+			for(int j=0; j<3; j++) {
+				distance += (side1[i][j]-side2[i][j])*(side1[i][j]-side2[i][j]);
+			}
+		}
+
+		return sqrt(distance);
 	}
 
 	double hausdorff(const RubiksCube &cube) const {
-		long ha = 0;
-		long hb = 0;
-		long result = 0;
+		/* Minimums should be found for each side. */
+		double min[] = {INT_MAX, INT_MAX, INT_MAX, INT_MAX, INT_MAX, INT_MAX};
 
-		for(int m=0; m<3; m++) {
-			for(int n=0; n<3; n++) {
-				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		/* Check all sides in pairs. */
+		for(int s1=0; s1<6; s1++) {
+			for(int s2=0; s2<6; s2++) {
+				double distance
+					= euclidean(*sides[s1], *(cube.sides)[s2]);
 
-				for(int i=0, d=0; i<3; i++) {
-					for(int j=0; j<3; j++) {
-						distances[d++] = abs(top[m][n]-cube.top[i][j]);
-						distances[d++] = abs(left[m][n]-cube.left[i][j]);
-						distances[d++] = abs(right[m][n]-cube.right[i][j]);
-						distances[d++] = abs(front[m][n]-cube.front[i][j]);
-						distances[d++] = abs(back[m][n]-cube.back[i][j]);
-						distances[d++] = abs(down[m][n]-cube.down[i][j]);
-					}
-				}
-
-				int min = distances[0];
-				for(int d=0; d<54; d++) {
-					if(distances[d] < min) {
-						min = distances[d];
-					}
-				}
-
-				if(min > ha) {
-					ha = min;
+				/* Keep track for the minimum distance. */
+				if(min[s1] > distance) {
+					min[s1] = distance;
 				}
 			}
 		}
 
-		for(int m=0; m<3; m++) {
-			for(int n=0; n<3; n++) {
-				int distances[] = {0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-				for(int i=0, d=0; i<3; i++) {
-					for(int j=0; j<3; j++) {
-						distances[d++] = abs(top[i][j]-cube.top[m][n]);
-						distances[d++] = abs(left[i][j]-cube.left[m][n]);
-						distances[d++] = abs(right[i][j]-cube.right[m][n]);
-						distances[d++] = abs(front[i][j]-cube.front[m][n]);
-						distances[d++] = abs(back[i][j]-cube.back[m][n]);
-						distances[d++] = abs(down[i][j]-cube.down[m][n]);
-					}
-				}
-
-				int min = distances[0];
-				for(int d=0; d<54; d++) {
-					if(distances[d] < min) {
-						min = distances[d];
-					}
-				}
-
-				if(min > hb) {
-					hb = min;
-				}
+		/* Find the maximum between the minimums. */
+		double result = min[0];
+		for(int s1=0; s1<6; s1++) {
+			if(result < min[s1]) {
+				result = min[s1];
 			}
 		}
-
-		result = std::max(ha, hb);
 
 		return(result);
 	}
@@ -329,9 +295,7 @@ public:
 
 		if (direction == CLOCKWISE) {
 			if (side == NONE) {
-				/*
-				* Do nothing.
-				*/
+				/* Do nothing. */
 			}
 			if (side == TOP) {
 				spinClockwise(top, numberOfTimes, TOP);
@@ -425,9 +389,7 @@ public:
 			}
 		}
 
-		/*
-		 * Trim spaces.
-		 */
+		/* Trim spaces. */
 		result.erase(result.size()-1, 1);
 		result += '\0';
 

@@ -20,9 +20,7 @@
 static int rank = -1;
 static int size = 0;
 
-/*
- * Receive buffer.
- */
+/** Receive buffer. */
 static char buffer[RECEIVE_BUFFER_SIZE];
 
 static RubiksCube solved;
@@ -33,9 +31,7 @@ static void shuffle() {
 		return;
 	}
 
-	/*
-	 * Cube to be solved.
-	 */
+	/* Cube to be solved. */
 	shuffled.shuffle(CUBE_SHUFFLING_STEPS);
 	std::cout << "Sender : " << std::to_string(shuffled.compare(solved)) << std::endl;
 }
@@ -47,14 +43,10 @@ static void master1() {
 		return;
 	}
 
-	/*
-	 * Send shffled cube to all other nodes.
-	 */{
+	/* Send shffled cube to all other nodes. */ {
 		const std::string &value = shuffled.toString();
 		for(int r=0; r<size; r++) {
-			/*
-			 * Root node is not included.
-			 */
+			/* Root node is not included. */
 			if(r == ROOT_NODE) {
 				continue;
 			}
@@ -67,13 +59,9 @@ static void master1() {
 	do {
 		std::cout << "Round : " << (counter+1) << std::endl;
 
-		/*
-		 * Send GA population to all other nodes.
-		 */
+		/* Send GA population to all other nodes. */
 		for(int r=0; r<size; r++) {
-			/*
-			 * Root node is not included.
-			 */
+			/* Root node is not included. */
 			if(r == ROOT_NODE) {
 				continue;
 			}
@@ -84,9 +72,7 @@ static void master1() {
 				GeneticAlgorithmOptimizer::addRandomCommands(ga, solved, shuffled, LOCAL_POPULATION_SIZE);
 				populations[r] = ga;
 			} else {
-				/*
-				 * Ring migration strategy.
-				 */
+				/* Ring migration strategy. */
 				int next = (r+1) % size;
 				while(next == ROOT_NODE) {
 					next = (next+1) % size;
@@ -102,13 +88,9 @@ static void master1() {
 			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
 		}
 
-		/*
-		 * Collect results from all other nodes.
-		 */
+		/* Collect results from all other nodes. */
 		for(int r=0; r<size; r++) {
-			/*
-			 * Root node is not included.
-			 */
+			/* Root node is not included. */
 			if(r == ROOT_NODE) {
 				continue;
 			}
@@ -131,14 +113,10 @@ static void master2() {
 		return;
 	}
 
-	/*
-	 * Send shffled cube to all other nodes.
-	 */{
+	/* Send shffled cube to all other nodes. */ {
 		const std::string &value = shuffled.toString();
 		for(int r=0; r<size; r++) {
-			/*
-			 * Root node is not included.
-			 */
+			/* Root node is not included. */
 			if(r == ROOT_NODE) {
 				continue;
 			}
@@ -153,9 +131,7 @@ static void master2() {
 		std::cout << "Round : " << (counter+1) << std::endl;
 
 		for(int r=0; r<size; r++) {
-			/*
-			 * Root node is not included.
-			 */
+			/* Root node is not included. */
 			if(r == ROOT_NODE) {
 				continue;
 			}
@@ -178,13 +154,9 @@ static void master2() {
 			MPI_Send(value.c_str(), value.size(), MPI_BYTE, r, DEFAULT_TAG, MPI_COMM_WORLD);
 		}
 
-		/*
-		 * Collect results from all other nodes.
-		 */
+		/* Collect results from all other nodes. */
 		for(int r=0; r<size; r++) {
-			/*
-			 * Root node is not included.
-			 */
+			/* Root node is not included. */
 			if(r == ROOT_NODE) {
 				continue;
 			}
@@ -221,9 +193,7 @@ static void slave1() {
 		MPI_Recv(buffer, RECEIVE_BUFFER_SIZE, MPI_BYTE, ROOT_NODE, DEFAULT_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		ga.fromString(buffer);
 
-		/*
-		 * Calculate as regular node.
-		 */
+		/* Calculate as regular node. */
 		GeneticAlgorithmOptimizer::optimize(ga, solved, shuffled, LOCAL_OPTIMIZATION_EPOCHES);
 
 		std::string result = ga.toString();
@@ -244,9 +214,7 @@ int main(int argc, char **argv) {
 
 	srand( time(NULL)^getpid() );
 
-	/*
-	 * Firs process will distribute the working tasks.
-	 */
+	/* Firs process will distribute the working tasks. */
 	shuffle();
 	master1();
 	slave1();
