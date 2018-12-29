@@ -292,6 +292,7 @@ public:
 			break;
 		case
 				WEIGHTED:
+			return colors(cube);
 			break;
 		case
 				HAUSDORFF:
