@@ -296,7 +296,7 @@ public:
 			break;
 		case
 				HAUSDORFF:
-			return euclidean(cube);
+			return hausdorff(cube);
 			break;
 		default:
 			//TODO Do exception handling.
